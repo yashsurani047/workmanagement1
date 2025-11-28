@@ -51,7 +51,13 @@ function MainNavigator() {
             }}
             tabBar={(props) => <Bottomnav {...props} />}
           >
-            <Tab.Screen name="Home" component={HomeScreen} />
+            <Tab.Screen
+              name="Home"
+              component={HomeScreen}
+              options={{
+                tabBarButton: () => null,
+              }}
+            />
             <Tab.Screen name="Profile" component={ProfileScreen} />
           </Tab.Navigator>
         )}

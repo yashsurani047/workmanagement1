@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: theme.colors.text },
+  headerTitle: { fontSize: 22, fontWeight: "700", color: theme.colors.text },
   headerActions: { flexDirection: "row", alignItems: "center" },
   headerIconBtn: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: 50, padding: 6 },
   itemIconBtn: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: 50, padding: 6 },

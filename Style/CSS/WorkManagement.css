@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  /* 🎨 WORKMANAGEMENT PRIMARY COLOR - LIGHT MODE */
+  --color-workmanagement-primary-50:  #f2f7fa;
+  --color-workmanagement-primary-100: #d6e6ee;
+  --color-workmanagement-primary-200: #adcddc;
+  --color-workmanagement-primary-300: #7ab0c5;
+  --color-workmanagement-primary-400: #4e8dab;
+  --color-workmanagement-primary-500: #002e47; /* main */
+  --color-workmanagement-primary-600: #00273d;
+  --color-workmanagement-primary-700: #001f31;
+  --color-workmanagement-primary-800: #001725;
+  --color-workmanagement-primary-900: #000f19;
+  --color-workmanagement-primary-950: #00090f;
+}
+
+html.dark {
+  /* 🌙 WORKMANAGEMENT PRIMARY - DARK MODE */
+  --color-workmanagement-primary-50:  #00090f;
+  --color-workmanagement-primary-100: #00131c;
+  --color-workmanagement-primary-200: #001e2b;
+  --color-workmanagement-primary-300: #00293a;
+  --color-workmanagement-primary-400: #00344a;
+  --color-workmanagement-primary-500: #00415a; /* elevated dark tone */
+  --color-workmanagement-primary-600: #1a5971;
+  --color-workmanagement-primary-700: #417f96;
+  --color-workmanagement-primary-800: #79b2c4;
+  --color-workmanagement-primary-900: #b6d8e4;
+  --color-workmanagement-primary-950: #e4f3f8;
+}
+
+
+/* Scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #4ec3b3;
+  border-radius: 9999px;
+}

@@ -12,18 +12,22 @@ import {
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { Search, Bell } from 'lucide-react-native';
 import theme from '../../Themes/Themes';
 // Removed app logo per request
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUserProfile } from '../../Services/Common/authServices';
 import { BASE_URL } from '../../Config/api';
+import Drawerbar from './Drawerbar';
 
 const { width } = Dimensions.get('window');
 
 const TopNavbar = () => {
+  const navigation = useNavigation();
   const [fullName, setFullName] = React.useState('User');
   const [avatar, setAvatar] = React.useState(null);
+  const [drawerVisible, setDrawerVisible] = React.useState(false);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -71,6 +75,16 @@ const TopNavbar = () => {
     loadUser();
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.multiRemove(['userToken', 'userId', 'userInfo']);
+      setDrawerVisible(false);
+      setTimeout(() => {
+        navigation.reset && navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+      }, 150);
+    } catch (e) {}
+  };
+
   return (
     <SafeAreaView
       style={styles.safeArea}
@@ -87,10 +101,12 @@ const TopNavbar = () => {
 
       <View style={styles.greetingRow}>
         <View style={styles.leftRow}>
-          <Image
-            source={avatar ? { uri: avatar } : { uri: 'https://i.pravatar.cc/150?img=3' }}
-            style={styles.avatar}
-          />
+          <TouchableOpacity onPress={() => setDrawerVisible(true)} activeOpacity={0.8}>
+            <Image
+              source={avatar ? { uri: avatar } : { uri: 'https://i.pravatar.cc/150?img=3' }}
+              style={styles.avatar}
+            />
+          </TouchableOpacity>
           <Text style={styles.greeting} numberOfLines={1}>{getGreeting()}, {fullName}!</Text>
         </View>
         <TouchableOpacity style={styles.bellButton} activeOpacity={0.7}>
@@ -107,6 +123,8 @@ const TopNavbar = () => {
           placeholderTextColor={theme.colors.gray}
         />
       </View>
+      {/* Drawer overlay */}
+      <Drawerbar visible={drawerVisible} onClose={() => setDrawerVisible(false)} onLogout={handleLogout} />
     </SafeAreaView>
   );
 };
@@ -152,8 +170,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 45,
-    height: 45,
+    width: 40,
+    height: 40,
     borderRadius: 30,
     borderWidth: 1,
     borderColor: theme.colors.white,

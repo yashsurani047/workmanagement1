@@ -212,8 +212,7 @@ const HomeScreen = ({ navigation }) => {
       ) : (
         <View style={{ flex: 1 }}>
           <View style={styles.headerArea}>
-            <Text style={styles.welcomeText}>Welcome, {userInfo?.full_name || "User"}</Text>
-          </View>
+            </View>
 
           {category === "project" ? (
             <CardDetailsList items={projects} navigation={navigation} onRefresh={loadUserData} />
@@ -248,7 +247,7 @@ const styles = StyleSheet.create({
   },
   headerArea: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    marginTop:-10,
     paddingBottom: 8,
     backgroundColor: theme.colors.background,
   },
@@ -306,7 +305,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   blankState: {
-    paddingVertical: 40,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 16,
@@ -321,4 +319,4 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.textSecondary,
   },
-});
+  });
