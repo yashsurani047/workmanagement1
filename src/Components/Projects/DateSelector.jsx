@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+
 import dayjs from 'dayjs';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import theme from '../../Themes/Themes';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -27,17 +27,24 @@ const getMonthDates = (date) => {
   return dates;
 };
 
-export default function DateSelector({ onDateChange }) {
+export default function DateSelector({ onDateChange, selectedDateId: externalSelectedId }) {
   const todayId = dayjs().format(DATE_FORMAT_ID);
-  const [selectedDateId, setSelectedDateId] = useState(todayId);
+  const [selectedDateId, setSelectedDateId] = useState(externalSelectedId || todayId);
   const [dates, setDates] = useState([]);
-  const [showPicker, setShowPicker] = useState(false);
 
   const scrollViewRef = useRef(null);
 
   useEffect(() => {
     updateDates(dayjs(selectedDateId));
   }, []);
+
+  // sync when parent changes selected date
+  useEffect(() => {
+    if (externalSelectedId && externalSelectedId !== selectedDateId) {
+      setSelectedDateId(externalSelectedId);
+      updateDates(dayjs(externalSelectedId));
+    }
+  }, [externalSelectedId]);
 
   const updateDates = (centerDate) => {
     const d = getMonthDates(centerDate);
@@ -63,26 +70,6 @@ export default function DateSelector({ onDateChange }) {
     }
   };
 
-  const handlePickDate = (event, date) => {
-    if (Platform.OS === 'android') {
-      setShowPicker(false); // Android picker closes automatically
-    }
-    if (!date) return;
-
-    const picked = dayjs(date);
-    // Keep the previously selected day index but clamp to the days in the picked month
-    const prevDay = dayjs(selectedDateId).date();
-    const clampedDay = Math.min(prevDay || picked.date(), picked.daysInMonth());
-    const next = picked.date(clampedDay);
-
-    const nextId = next.format(DATE_FORMAT_ID);
-    setSelectedDateId(nextId);
-    updateDates(next);
-    if (typeof onDateChange === 'function') {
-      onDateChange(nextId);
-    }
-  };
-
   return (
     <View style={styles.container}>
       <ScrollView
@@ -91,27 +78,6 @@ export default function DateSelector({ onDateChange }) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* View All Button (clears date filtering) */}
-        <TouchableOpacity
-          style={[styles.dateItem, styles.viewAllButton]}
-          onPress={() => {
-            setSelectedDateId("");
-            if (typeof onDateChange === 'function') onDateChange(null);
-          }}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.viewAllText}>View All</Text>
-        </TouchableOpacity>
-
-        {/* Pick Date Button */}
-        <TouchableOpacity
-          style={[styles.dateItem, styles.pickButton]}
-          onPress={() => setShowPicker(true)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.pickText}>Pick Date</Text>
-        </TouchableOpacity>
-
         {/* Month Dates */}
         {dates.map((item) => {
           const selected = item.id === selectedDateId;
@@ -133,16 +99,6 @@ export default function DateSelector({ onDateChange }) {
           );
         })}
       </ScrollView>
-
-      {/* Date Picker */}
-      {showPicker && (
-        <DateTimePicker
-          value={new Date(selectedDateId)}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={handlePickDate}
-        />
-      )}
     </View>
   );
 }
@@ -167,31 +123,6 @@ const styles = StyleSheet.create({
     shadowColor: theme.colors.shadow,
     shadowOpacity: 0.12,
     shadowRadius: 4,
-  },
-  pickButton: {
-    backgroundColor: theme.colors.primary,
-    borderWidth: 0,
-    width: 90,
-    height: ITEM_HEIGHT,
-    borderRadius: 14,
-  },
-  viewAllButton: {
-    backgroundColor: theme.colors.muted100,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    width: 90,
-    height: ITEM_HEIGHT,
-    borderRadius: 14,
-  },
-  pickText: {
-    color: theme.colors.white,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  viewAllText: {
-    color: theme.colors.text,
-    fontWeight: '700',
-    textAlign: 'center',
   },
   unselected: {
     backgroundColor: theme.colors.white,

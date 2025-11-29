@@ -12,7 +12,9 @@ import {
   PanResponder,
   TouchableOpacity,
   ScrollView,
+  Platform,
 } from "react-native";
+import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ShimmerPlaceholder from "react-native-shimmer-placeholder";
 import LinearGradient from "react-native-linear-gradient";
@@ -39,6 +41,7 @@ const HomeScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [showPicker, setShowPicker] = useState(false);
   const [animX, setAnimX] = useState(new Animated.Value(0));
   const baseDate = React.useMemo(() => new Date(), []);
   const dates = React.useMemo(() => {
@@ -61,6 +64,16 @@ const HomeScreen = ({ navigation }) => {
   const dayNum = (d) => String(d.getDate());
   const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
   const weekDates = Array.from({ length: 7 }, (_, i) => addDays(selectedDate, i - 3));
+
+  const handlePickDate = (_event, date) => {
+    if (Platform.OS === 'android') setShowPicker(false);
+    if (!date) return;
+    try {
+      setSelectedDate(new Date(date));
+    } catch {
+      // ignore parse
+    }
+  };
 
   // --- Instagram-like swipe navigation across sections ---
   const order = ["home", "project", "task", "meeting", "event"]; // sequence
@@ -290,16 +303,24 @@ const HomeScreen = ({ navigation }) => {
                 <TouchableOpacity style={[styles.pillButton, { backgroundColor: theme.colors.background, borderColor: theme.colors.border, borderWidth: 1 }]} onPress={() => navigation.navigate("Home", { category: "project" })}>
                   <Text style={[styles.pillButtonText, { color: theme.colors.text }]}>View All</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.pillButton, { backgroundColor: theme.colors.primary }]} onPress={() => setSelectedDate(new Date())}>
+                <TouchableOpacity style={[styles.pillButton, { backgroundColor: theme.colors.primary }]} onPress={() => setShowPicker(true)}>
                   <Text style={[styles.pillButtonText, { color: theme.colors.white }]}>Pick Date</Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.dateStrip}>
-                <DateSelector onDateChange={(id) => {
+                <DateSelector selectedDateId={formatDateISO(selectedDate)} onDateChange={(id) => {
                   if (!id) { setSelectedDate(new Date()); return; }
                   try { setSelectedDate(new Date(id)); } catch { setSelectedDate(new Date()); }
                 }} />
               </View>
+              {showPicker && (
+                <DateTimePicker
+                  value={selectedDate || new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={handlePickDate}
+                />
+              )}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>My Focus Today</Text>
                 <View style={styles.cardBox}>
