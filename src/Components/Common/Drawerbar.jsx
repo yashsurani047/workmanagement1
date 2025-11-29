@@ -379,6 +379,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    marginTop: 8,
   },
   secondaryBtn: {
     alignSelf: 'flex-start',

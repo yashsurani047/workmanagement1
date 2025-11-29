@@ -8,6 +8,10 @@ import {
   Alert,
   SafeAreaView,
   FlatList,
+  Animated,
+  PanResponder,
+  TouchableOpacity,
+  ScrollView,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ShimmerPlaceholder from "react-native-shimmer-placeholder";
@@ -19,6 +23,7 @@ import TaskDetailsList from "../Components/Tasks/TaskDetailsList";
 import CardDetailsList from "../Components/Projects/ProjectDetailsList";
 import MeetingDetailsList from "../Components/Meeting/MeetingDetailsList";
 import EventDetailsList from "../Components/Event/EventDetailsList";
+import DateSelector from "../Components/Projects/DateSelector";
 import { fetchPersonalTasks } from "../Services/Tasks/FetchPersonalTask";
 import { fetchMeetings } from "../Services/Meeting/FetchMeetings";
 import { getUserEvents } from "../Services/Event/EventServices";
@@ -33,6 +38,75 @@ const HomeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [animX, setAnimX] = useState(new Animated.Value(0));
+  const baseDate = React.useMemo(() => new Date(), []);
+  const dates = React.useMemo(() => {
+    const start = new Date(baseDate);
+    start.setDate(start.getDate() - 15);
+    return Array.from({ length: 90 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return d;
+    });
+  }, [baseDate]);
+
+  const formatDateISO = (d) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+  const prettyDay = (d) => d.toLocaleDateString(undefined, { weekday: "short" }).toUpperCase();
+  const dayNum = (d) => String(d.getDate());
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const weekDates = Array.from({ length: 7 }, (_, i) => addDays(selectedDate, i - 3));
+
+  // --- Instagram-like swipe navigation across sections ---
+  const order = ["home", "project", "task", "meeting", "event"]; // sequence
+  const currentKey = () => {
+    const cat = route?.params?.category;
+    return cat ? String(cat).toLowerCase() : "home";
+  };
+  const navigateKey = (key) => {
+    if (key === "home") navigation.navigate("Home");
+    else navigation.navigate("Home", { category: key });
+  };
+  const goNext = () => {
+    const idx = order.indexOf(currentKey());
+    navigateKey(order[(idx + 1) % order.length]);
+  };
+  const goPrev = () => {
+    const idx = order.indexOf(currentKey());
+    navigateKey(order[(idx - 1 + order.length) % order.length]);
+  };
+  const panResponder = React.useMemo(() => (
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_e, g) => {
+        const absDx = Math.abs(g.dx);
+        const absDy = Math.abs(g.dy);
+        return absDx > 12 && absDx > absDy; // horizontal intent
+      },
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponderCapture: (_e, g) => {
+        const absDx = Math.abs(g.dx);
+        const absDy = Math.abs(g.dy);
+        return absDx > 12 && absDx > absDy;
+      },
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderRelease: (_e, g) => {
+        const threshold = 40; // pixels
+        if (g.dx >= threshold) {
+          // left → right
+          goPrev();
+        } else if (g.dx <= -threshold) {
+          // right → left
+          goNext();
+        }
+      },
+    })
+  ), [route?.params?.category]);
 
   // loadUserData defined with stable identity
   const loadUserData = useCallback(async () => {
@@ -170,7 +244,6 @@ const HomeScreen = ({ navigation }) => {
     fetchForCategory();
   }, [route?.params?.category, tasks.length, meetings.length, events.length, userInfo]);
 
-
   // Shimmer loader component
   const ShimmerLoading = () => (
     <View style={styles.shimmerContainer}>
@@ -210,7 +283,47 @@ const HomeScreen = ({ navigation }) => {
       {loading ? (
         <ShimmerLoading />
       ) : (
-        <View style={{ flex: 1 }}>
+        <Animated.View style={{ flex: 1, transform: [{ translateX: animX }] }} {...panResponder.panHandlers}>
+          {!category && (
+            <View>
+              <View style={styles.actionRow}>
+                <TouchableOpacity style={[styles.pillButton, { backgroundColor: theme.colors.background, borderColor: theme.colors.border, borderWidth: 1 }]} onPress={() => navigation.navigate("Home", { category: "project" })}>
+                  <Text style={[styles.pillButtonText, { color: theme.colors.text }]}>View All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.pillButton, { backgroundColor: theme.colors.primary }]} onPress={() => setSelectedDate(new Date())}>
+                  <Text style={[styles.pillButtonText, { color: theme.colors.white }]}>Pick Date</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.dateStrip}>
+                <DateSelector onDateChange={(id) => {
+                  if (!id) { setSelectedDate(new Date()); return; }
+                  try { setSelectedDate(new Date(id)); } catch { setSelectedDate(new Date()); }
+                }} />
+              </View>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>My Focus Today</Text>
+                <View style={styles.cardBox}>
+                  <Text style={styles.cardTitleText}>Review Client CRM Data</Text>
+                  <View style={{ height: 8 }} />
+                  <Text style={styles.cardSubText}>Prepare Q3 Presentation Draft</Text>
+                </View>
+              </View>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Recent Activity</Text>
+                <View style={styles.activityCard}>
+                  <Text style={styles.activityTitle}>Task updates and mentions will appear here.</Text>
+                  <Text style={styles.activityTime}>Just now</Text>
+                </View>
+              </View>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Upcoming Meetings</Text>
+                <View style={styles.activityCard}>
+                  <Text style={styles.activityTitle}>No upcoming meetings.</Text>
+                  <Text style={styles.activityTime}>Today</Text>
+                </View>
+              </View>
+            </View>
+          )}
 
           {category === "project" ? (
             <CardDetailsList items={projects} navigation={navigation} onRefresh={loadUserData} />
@@ -230,7 +343,7 @@ const HomeScreen = ({ navigation }) => {
               contentContainerStyle={styles.scrollContent}
             />
           )}
-        </View>
+        </Animated.View>
       )}
     </SafeAreaView>
   );
@@ -282,6 +395,90 @@ const styles = StyleSheet.create({
     height: 90,
     borderRadius: 12,
     marginBottom: 12,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginTop: 8,
+  },
+  pillButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  pillButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  dateStrip: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  datePill: {
+    width: 56,
+    height: 64,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 6,
+  },
+  datePillDay: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  datePillWeek: {
+    fontSize: 11,
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  section: {
+    paddingHorizontal: 16,
+    marginTop: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: 8,
+  },
+  cardBox: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 12,
+  },
+  cardTitleText: {
+    color: theme.colors.text,
+    fontSize: 14.5,
+    fontWeight: '700',
+  },
+  cardSubText: {
+    color: theme.colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  activityCard: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 12,
+  },
+  activityTitle: {
+    color: theme.colors.text,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  activityTime: {
+    marginTop: 4,
+    color: theme.colors.textSecondary,
+    fontSize: 12,
   },
   emptyContainer: {
     marginTop: 20,
