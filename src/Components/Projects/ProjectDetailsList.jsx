@@ -393,7 +393,7 @@
     };
 
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={["bottom"]}>
         <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
 
         {/* Header */}
@@ -549,10 +549,10 @@
 
   const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: theme.colors.background },
-    header: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, alignItems: "center" },
+    header: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 1, alignItems: "center" },
     headerTitle: { fontSize: 22, fontWeight: "700", color: theme.colors.text },
     headerActions: { flexDirection: "row", gap: 12 },
-    headerIconBtn: { padding: 8, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 50 },
+    headerIconBtn: { padding: 6, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 50 },
     projectCard: { flexDirection: "row", backgroundColor: theme.colors.background, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: theme.colors.border },
     shadow: { shadowColor: theme.colors.shadow, shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
     leftStripe: { width: 5 },
@@ -567,7 +567,7 @@
     smallAvatarText: { color: theme.colors.white, fontWeight: "700", fontSize: 11 },
     statusSoft: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
     statusSoftText: { fontWeight: "600", fontSize: 12.5 },
-    listContent: { paddingHorizontal: 12, paddingBottom: 80 },
+    listContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40 },
 
     // Meta row with small avatar
     metaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },

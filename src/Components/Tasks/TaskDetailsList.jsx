@@ -370,7 +370,7 @@ const TaskDetailsList = ({ items = [], onItemPress, onTaskMenuPress, onRefresh, 
           if (item?.__shimmer) return <ShimmerCard />;
           return <TaskCard task={item} onPress={onItemPress} onMenuPress={handleMenuPress} />;
         }}
-        contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 60 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40 }}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={!loading ? (
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontWeight: '500',
   },
-  header: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, alignItems: "center" },
+  header: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 1, alignItems: "center" },
   headerTitle: { fontSize: 22, fontWeight: "700", color: theme.colors.text },
   headerActions: { flexDirection: "row", alignItems: "center" },
   headerIconBtn: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: 50, padding: 6, marginLeft: 8 },

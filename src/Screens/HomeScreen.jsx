@@ -211,8 +211,6 @@ const HomeScreen = ({ navigation }) => {
         <ShimmerLoading />
       ) : (
         <View style={{ flex: 1 }}>
-          <View style={styles.headerArea}>
-            </View>
 
           {category === "project" ? (
             <CardDetailsList items={projects} navigation={navigation} onRefresh={loadUserData} />
@@ -243,12 +241,6 @@ export default HomeScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  headerArea: {
-    paddingHorizontal: 16,
-    marginTop:-10,
-    paddingBottom: 8,
     backgroundColor: theme.colors.background,
   },
   scrollContent: {

@@ -30,8 +30,13 @@ const TopNavbar = () => {
   const [fullName, setFullName] = React.useState('User');
   const [avatar, setAvatar] = React.useState(null);
   const [drawerVisible, setDrawerVisible] = React.useState(false);
-  const scaleAnim = React.useRef(new Animated.Value(1)).current;
+
+  const pulseAnim = React.useRef(new Animated.Value(1)).current;
+  const pressAnim = React.useRef(new Animated.Value(1)).current;
   const spinnerAnim = React.useRef(new Animated.Value(0)).current;
+
+  // Final scale = pulse (looping) * press (tap zoom)
+  const combinedScale = Animated.multiply(pulseAnim, pressAnim);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -59,9 +64,14 @@ const TopNavbar = () => {
             if (resp?.success && resp?.data) {
               const data = resp.data;
               const name = data.full_name || data.username || data.user_name || 'User';
-              const photoFields = ['profile_photo','avatar','photo_url','profile_pic','photo'];
+              const photoFields = ['profile_photo', 'avatar', 'photo_url', 'profile_pic', 'photo'];
               let photoVal = null;
-              for (const f of photoFields) { if (data[f]) { photoVal = data[f]; break; } }
+              for (const f of photoFields) {
+                if (data[f]) {
+                  photoVal = data[f];
+                  break;
+                }
+              }
               setFullName(name);
               setAvatar(buildAvatarUri(photoVal));
               return;
@@ -79,18 +89,19 @@ const TopNavbar = () => {
     loadUser();
   }, []);
 
+  // Gentle continuous pulse
   React.useEffect(() => {
     const animation = Animated.loop(
       Animated.sequence([
-        Animated.timing(scaleAnim, {
-          toValue: 1.06,
-          duration: 900,
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 800,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 900,
+        Animated.timing(pulseAnim, {
+          toValue: 0.92,
+          duration: 800,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
@@ -98,8 +109,9 @@ const TopNavbar = () => {
     );
     animation.start();
     return () => animation.stop();
-  }, [scaleAnim]);
+  }, [pulseAnim]);
 
+  // Spinning ring
   React.useEffect(() => {
     spinnerAnim.setValue(0);
     const spinLoop = Animated.loop(
@@ -124,6 +136,27 @@ const TopNavbar = () => {
     } catch (e) {}
   };
 
+  // Smooth zoom in / zoom out on avatar tap
+  const handleAvatarPress = () => {
+    Animated.sequence([
+      Animated.timing(pressAnim, {
+        toValue: 1.2,              // zoom in
+        duration: 180,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(pressAnim, {
+        toValue: 1,                // zoom back
+        duration: 180,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Open drawer after animation completes
+      setDrawerVisible(true);
+    });
+  };
+
   return (
     <SafeAreaView
       style={styles.safeArea}
@@ -140,11 +173,19 @@ const TopNavbar = () => {
 
       <View style={styles.greetingRow}>
         <View style={styles.leftRow}>
-          <TouchableOpacity onPress={() => setDrawerVisible(true)} activeOpacity={0.8}>
+          <TouchableOpacity
+            onPress={handleAvatarPress}
+            activeOpacity={0.8}
+          >
             <View style={styles.avatarContainer}>
               <Animated.Image
                 source={avatar ? { uri: avatar } : { uri: 'https://i.pravatar.cc/150?img=3' }}
-                style={[styles.avatar, { transform: [{ scale: scaleAnim }] }]}
+                style={[
+                  styles.avatar,
+                  {
+                    transform: [{ scale: combinedScale }],
+                  },
+                ]}
               />
               <Animated.View
                 style={[
@@ -152,7 +193,10 @@ const TopNavbar = () => {
                   {
                     transform: [
                       {
-                        rotate: spinnerAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }),
+                        rotate: spinnerAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '360deg'],
+                        }),
                       },
                     ],
                   },
@@ -160,7 +204,9 @@ const TopNavbar = () => {
               />
             </View>
           </TouchableOpacity>
-          <Text style={styles.greeting} numberOfLines={1}>{getGreeting()}, {fullName}!</Text>
+          <Text style={styles.greeting} numberOfLines={1}>
+            {getGreeting()}, {fullName}!
+          </Text>
         </View>
         <TouchableOpacity style={styles.bellButton} activeOpacity={0.7}>
           <Bell size={22} color={theme.colors.white} />
@@ -176,8 +222,13 @@ const TopNavbar = () => {
           placeholderTextColor={theme.colors.gray}
         />
       </View>
+
       {/* Drawer overlay */}
-      <Drawerbar visible={drawerVisible} onClose={() => setDrawerVisible(false)} onLogout={handleLogout} />
+      <Drawerbar
+        visible={drawerVisible}
+        onClose={() => setDrawerVisible(false)}
+        onLogout={handleLogout}
+      />
     </SafeAreaView>
   );
 };
@@ -222,19 +273,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  avatarContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
+  },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 30,
     borderWidth: 1,
     borderColor: theme.colors.white,
-    marginRight: 1,
-    
+  },
+  spinnerRing: {
+    position: 'absolute',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: theme.colors.white,
+    borderTopColor: 'transparent',
+    borderLeftColor: 'transparent',
+    opacity: 0.4,
   },
   bellButton: {
     padding: 6,
     alignSelf: 'flex-start',
-    marginTop:6,
+    marginTop: 6,
   },
   textContainer: {
     marginLeft: 10,
@@ -244,7 +309,7 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
     fontSize: 16,
     fontWeight: '600',
-    marginTop: 2,
+    marginLeft: 10,
   },
   subGreeting: {
     color: theme.colors.white,
@@ -271,20 +336,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 8,
   },
-
-
   searchInput: {
     flex: 1,
     fontSize: 14,
     color: theme.colors.black,
     marginLeft: 8, //  Space between icon and text
     paddingVertical: 0, // Prevents extra internal padding (especially on iOS)
-  },
-  greeting: {
-    color: theme.colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 10,
   },
 });
 

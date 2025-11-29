@@ -21,7 +21,7 @@ import theme from '../../Themes/Themes';
 import { BASE_URL } from '../../Config/api.jsx';
 
 // ⭐ Lucide Icons
-import { X, User, Settings, HelpCircle, ChevronRight } from 'lucide-react-native';
+import { User, Settings, HelpCircle, ChevronRight } from 'lucide-react-native';
 
 // ⭐ Navigation Hook (NEW)
 import { useNavigation } from '@react-navigation/native';
@@ -194,15 +194,6 @@ const Drawerbar = ({ visible, onClose, onLogout }) => {
                       {profile?.email || profile?.user_primary_email_id || ''}
                     </Text>
                   </View>
-
-                  {/* ⭐ Lucide close icon */}
-                  <TouchableOpacity
-                    style={styles.headerCloseIcon}
-                    onPress={onClose}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <X size={18} color={theme.colors.white} />
-                  </TouchableOpacity>
                 </View>
               </View>
 

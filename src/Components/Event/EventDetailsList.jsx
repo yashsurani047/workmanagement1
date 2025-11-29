@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.background },
   header: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

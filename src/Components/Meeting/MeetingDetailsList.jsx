@@ -343,7 +343,7 @@ export default function MeetingDetailsList(props) {
   }, [props?.items, list, query, typeFilter, scopeFilter]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Meetings</Text>
         <View style={styles.headerActions}>
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.background },
   header: {
     paddingHorizontal: 16,
-    paddingVertical: 0,
+    paddingVertical: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
