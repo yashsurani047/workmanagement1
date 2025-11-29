@@ -234,15 +234,14 @@ const TopNavbar = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+   safeArea: {
     backgroundColor: theme.colors.primary,
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 10,
+    paddingTop: Platform.OS === 'ios' ? 4 : 10,
+    paddingBottom: Platform.OS === 'ios' ? 4 : 10,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
-    // Reserve space below for the overlapping search bar (height 45 -> half 22 + extra)
-    marginBottom: 44,
+    marginBottom: Platform.OS === 'ios' ? 30 : 44,
   },
   topNavbar: {
     flexDirection: 'row',

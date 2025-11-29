@@ -65,6 +65,7 @@ const HomeScreen = ({ navigation }) => {
   const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
   const weekDates = Array.from({ length: 7 }, (_, i) => addDays(selectedDate, i - 3));
 
+<<<<<<< HEAD
   const handlePickDate = (_event, date) => {
     if (Platform.OS === 'android') setShowPicker(false);
     if (!date) return;
@@ -77,46 +78,86 @@ const HomeScreen = ({ navigation }) => {
 
   // --- Instagram-like swipe navigation across sections ---
   const order = ["home", "project", "task", "meeting", "event"]; // sequence
+=======
+  // --- Enhanced swipe navigation with smooth animations ---
+  const order = ["home", "project", "task", "meeting", "event"];
+  const SWIPE_THRESHOLD = 60; // Increased threshold for better long swipe detection
+  const SWIPE_VELOCITY_THRESHOLD = 0.3; // Minimum velocity for fast swipe
+  
+>>>>>>> ce83e2ced5d9205b283a3a4b63a34ba904f0b6be
   const currentKey = () => {
     const cat = route?.params?.category;
     return cat ? String(cat).toLowerCase() : "home";
   };
+
   const navigateKey = (key) => {
     if (key === "home") navigation.navigate("Home");
     else navigation.navigate("Home", { category: key });
   };
+
   const goNext = () => {
     const idx = order.indexOf(currentKey());
     navigateKey(order[(idx + 1) % order.length]);
   };
+
   const goPrev = () => {
     const idx = order.indexOf(currentKey());
     navigateKey(order[(idx - 1 + order.length) % order.length]);
   };
+
+  // Animation value for swipe effect
+  const swipeAnim = React.useRef(new Animated.Value(0)).current;
+  const [swipeDirection, setSwipeDirection] = React.useState(null);
+
   const panResponder = React.useMemo(() => (
     PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_e, g) => {
-        const absDx = Math.abs(g.dx);
-        const absDy = Math.abs(g.dy);
-        return absDx > 12 && absDx > absDy; // horizontal intent
+        const { dx, dy } = g;
+        return Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.5;
       },
-      onStartShouldSetPanResponderCapture: () => true,
-      onMoveShouldSetPanResponderCapture: (_e, g) => {
-        const absDx = Math.abs(g.dx);
-        const absDy = Math.abs(g.dy);
-        return absDx > 12 && absDx > absDy;
+      onPanResponderGrant: () => {
+        swipeAnim.setValue(0);
+        setSwipeDirection(null);
       },
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderRelease: (_e, g) => {
-        const threshold = 40; // pixels
-        if (g.dx >= threshold) {
-          // left → right
-          goPrev();
-        } else if (g.dx <= -threshold) {
-          // right → left
-          goNext();
+      onPanResponderMove: (_, { dx, dy }) => {
+        // Only allow horizontal swipes
+        if (Math.abs(dx) > Math.abs(dy)) {
+          swipeAnim.setValue(dx);
         }
+      },
+      onPanResponderRelease: (_, { dx, vx }) => {
+        const isFastSwipe = Math.abs(vx) > SWIPE_VELOCITY_THRESHOLD;
+        const isLongSwipe = Math.abs(dx) > SWIPE_THRESHOLD;
+        
+        // Reset animation
+        Animated.spring(swipeAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 10,
+        }).start();
+
+        // Determine if we should navigate based on the swipe
+        if (isFastSwipe || isLongSwipe) {
+          if ((dx > 0 && vx > 0) || (dx > SWIPE_THRESHOLD)) {
+            // Left to right swipe - go to previous
+            goPrev();
+          } else if ((dx < 0 && vx < 0) || (dx < -SWIPE_THRESHOLD)) {
+            // Right to left swipe - go to next
+            goNext();
+          }
+        }
+        
+        setSwipeDirection(null);
+      },
+      onPanResponderTerminate: () => {
+        // Reset if the gesture is interrupted
+        Animated.spring(swipeAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+        setSwipeDirection(null);
       },
     })
   ), [route?.params?.category]);
@@ -296,7 +337,27 @@ const HomeScreen = ({ navigation }) => {
       {loading ? (
         <ShimmerLoading />
       ) : (
-        <Animated.View style={{ flex: 1, transform: [{ translateX: animX }] }} {...panResponder.panHandlers}>
+        <Animated.View 
+          style={[{
+            flex: 1,
+            transform: [
+              { translateX: Animated.add(
+                animX,
+                swipeAnim.interpolate({
+                  inputRange: [-200, 0, 200],
+                  outputRange: [-20, 0, 20],
+                  extrapolate: 'clamp',
+                })
+              ) }
+            ],
+            opacity: swipeAnim.interpolate({
+              inputRange: [-200, 0, 200],
+              outputRange: [0.8, 1, 0.8],
+              extrapolate: 'clamp',
+            }),
+          }]} 
+          {...panResponder.panHandlers}
+        >
           {!category && (
             <View>
               <View style={styles.actionRow}>
