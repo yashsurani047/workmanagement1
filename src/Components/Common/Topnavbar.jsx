@@ -9,6 +9,8 @@ import {
   Dimensions,
   TouchableOpacity,
   Image,
+  Animated,
+  Easing,
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,6 +30,8 @@ const TopNavbar = () => {
   const [fullName, setFullName] = React.useState('User');
   const [avatar, setAvatar] = React.useState(null);
   const [drawerVisible, setDrawerVisible] = React.useState(false);
+  const scaleAnim = React.useRef(new Animated.Value(1)).current;
+  const spinnerAnim = React.useRef(new Animated.Value(0)).current;
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -75,6 +79,41 @@ const TopNavbar = () => {
     loadUser();
   }, []);
 
+  React.useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.06,
+          duration: 900,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [scaleAnim]);
+
+  React.useEffect(() => {
+    spinnerAnim.setValue(0);
+    const spinLoop = Animated.loop(
+      Animated.timing(spinnerAnim, {
+        toValue: 1,
+        duration: 1200,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    spinLoop.start();
+    return () => spinLoop.stop();
+  }, [spinnerAnim]);
+
   const handleLogout = async () => {
     try {
       await AsyncStorage.multiRemove(['userToken', 'userId', 'userInfo']);
@@ -102,10 +141,24 @@ const TopNavbar = () => {
       <View style={styles.greetingRow}>
         <View style={styles.leftRow}>
           <TouchableOpacity onPress={() => setDrawerVisible(true)} activeOpacity={0.8}>
-            <Image
-              source={avatar ? { uri: avatar } : { uri: 'https://i.pravatar.cc/150?img=3' }}
-              style={styles.avatar}
-            />
+            <View style={styles.avatarContainer}>
+              <Animated.Image
+                source={avatar ? { uri: avatar } : { uri: 'https://i.pravatar.cc/150?img=3' }}
+                style={[styles.avatar, { transform: [{ scale: scaleAnim }] }]}
+              />
+              <Animated.View
+                style={[
+                  styles.spinnerRing,
+                  {
+                    transform: [
+                      {
+                        rotate: spinnerAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }),
+                      },
+                    ],
+                  },
+                ]}
+              />
+            </View>
           </TouchableOpacity>
           <Text style={styles.greeting} numberOfLines={1}>{getGreeting()}, {fullName}!</Text>
         </View>
