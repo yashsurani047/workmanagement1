@@ -1,5 +1,5 @@
 // src/Components/Bottomnav.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { fetchProjectsAPI } from "../../Services/Project/fetchProjects";
 import { fetchPersonalTasks } from "../../Services/Tasks/FetchPersonalTask";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -12,11 +12,65 @@ import {
   Modal,
   TouchableWithoutFeedback,
   Alert,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Home, Folder, ListTodo, Calendar, CalendarClock } from "lucide-react-native";
 import { getUserEvents, getOrganizationEvents } from "../../Services/Event/EventServices";
 import theme from "../../Themes/Themes";
+
+function TabButton({ tab, isActive, onPress }) {
+  const anim = useRef(new Animated.Value(isActive ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: isActive ? 1 : 0,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+  }, [isActive]);
+
+  const scale = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -4] });
+
+  return (
+    <TouchableOpacity
+      key={tab.id}
+      style={styles.tabItem}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <Animated.View style={{ alignItems: 'center', transform: [{ scale }, { translateY }] }}>
+        <View style={{ position: "relative" }}>
+          <tab.icon
+            size={24}
+            color={isActive ? theme.colors.primary : theme.colors.tabInactive}
+          />
+          {tab.count !== undefined && (
+            <View style={[styles.countBadge, { backgroundColor: `${theme.colors.primary}20` }]}>
+              <Text style={[styles.countBadgeText, { color: theme.colors.primary }]}>
+                {tab.loading ? "..." : tab.count}
+              </Text>
+            </View>
+          )}
+        </View>
+        <Text style={{ color: isActive ? theme.colors.primary : theme.colors.tabInactive, fontSize: 12, marginTop: 4 }}>
+          {tab.label}
+        </Text>
+        <Animated.View
+          style={{
+            marginTop: 4,
+            height: 2,
+            width: isActive ? 18 : 0,
+            backgroundColor: theme.colors.primary,
+            borderRadius: 2,
+            opacity: anim,
+          }}
+        />
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
 
 export default function Bottomnav({ state, navigation }) {
   const [isSheetVisible, setSheetVisible] = useState(false);
@@ -190,36 +244,18 @@ export default function Bottomnav({ state, navigation }) {
       <SafeAreaView edges={["bottom"]} style={styles.safeArea}>
         <View style={styles.container}>
           {bottomTabs.map((tab) => {
-            const IconComponent = tab.icon;
             const isHomeScreen = currentRouteName === "Home";
             const isActive = tab.screen !== "Home"
               ? currentRouteName === tab.screen
               : (tab.id === "home" ? isHomeScreen && !currentCategory : isHomeScreen && currentCategory === tab.id);
 
             return (
-              <TouchableOpacity
+              <TabButton
                 key={tab.id}
-                style={styles.tabItem}
+                tab={tab}
+                isActive={isActive}
                 onPress={() => handlePress(tab.id)}
-                activeOpacity={0.8}
-              >
-                <View style={{ position: "relative" }}>
-                  <IconComponent
-                    size={24}
-                    color={isActive ? theme.colors.primary : theme.colors.tabInactive}
-                  />
-                  {tab.count !== undefined && (
-                    <View style={[styles.countBadge, { backgroundColor: `${theme.colors.primary}20` }]}>
-                      <Text style={[styles.countBadgeText, { color: theme.colors.primary }]}>
-                        {tab.loading ? "..." : tab.count}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={{ color: isActive ? theme.colors.primary : theme.colors.tabInactive, fontSize: 12, marginTop: 4 }}>
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
+              />
             );
           })}
         </View>

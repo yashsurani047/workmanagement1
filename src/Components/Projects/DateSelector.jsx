@@ -27,7 +27,8 @@ const getMonthDates = (date) => {
   return dates;
 };
 
-export default function DateSelector({ onDateChange, selectedDateId: externalSelectedId }) {
+export default function DateSelector({ onDateChange, selectedDateId: externalSelectedId, onRequestPickDate }) {
+
   const todayId = dayjs().format(DATE_FORMAT_ID);
   const [selectedDateId, setSelectedDateId] = useState(externalSelectedId || todayId);
   const [dates, setDates] = useState([]);
@@ -72,6 +73,17 @@ export default function DateSelector({ onDateChange, selectedDateId: externalSel
 
   return (
     <View style={styles.container}>
+      {typeof onRequestPickDate === 'function' && (
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            onPress={onRequestPickDate}
+            activeOpacity={0.9}
+            style={styles.pickButton}
+          >
+            <Text style={styles.pickText}>Select Date</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <ScrollView
         ref={scrollViewRef}
         horizontal
@@ -111,6 +123,25 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 1,
     alignItems: 'center',
+  },
+  headerRow: {
+    paddingHorizontal: 8,
+    paddingBottom: 6,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
+  pickButton: {
+    height: 36,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.white,
   },
   dateItem: {
     width: ITEM_WIDTH,

@@ -12,9 +12,11 @@ import {
   PanResponder,
   TouchableOpacity,
   ScrollView,
+  Modal,
   Platform,
 } from "react-native";
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from "@react-native-community/datetimepicker";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ShimmerPlaceholder from "react-native-shimmer-placeholder";
 import LinearGradient from "react-native-linear-gradient";
@@ -41,8 +43,10 @@ const HomeScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const [showPicker, setShowPicker] = useState(false);
   const [animX, setAnimX] = useState(new Animated.Value(0));
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
+
   const baseDate = React.useMemo(() => new Date(), []);
   const dates = React.useMemo(() => {
     const start = new Date(baseDate);
@@ -65,26 +69,11 @@ const HomeScreen = ({ navigation }) => {
   const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
   const weekDates = Array.from({ length: 7 }, (_, i) => addDays(selectedDate, i - 3));
 
-<<<<<<< HEAD
-  const handlePickDate = (_event, date) => {
-    if (Platform.OS === 'android') setShowPicker(false);
-    if (!date) return;
-    try {
-      setSelectedDate(new Date(date));
-    } catch {
-      // ignore parse
-    }
-  };
-
-  // --- Instagram-like swipe navigation across sections ---
-  const order = ["home", "project", "task", "meeting", "event"]; // sequence
-=======
   // --- Enhanced swipe navigation with smooth animations ---
   const order = ["home", "project", "task", "meeting", "event"];
   const SWIPE_THRESHOLD = 60; // Increased threshold for better long swipe detection
   const SWIPE_VELOCITY_THRESHOLD = 0.3; // Minimum velocity for fast swipe
   
->>>>>>> ce83e2ced5d9205b283a3a4b63a34ba904f0b6be
   const currentKey = () => {
     const cat = route?.params?.category;
     return cat ? String(cat).toLowerCase() : "home";
@@ -337,7 +326,7 @@ const HomeScreen = ({ navigation }) => {
       {loading ? (
         <ShimmerLoading />
       ) : (
-        <Animated.View 
+        <Animated.View
           style={[{
             flex: 1,
             transform: [
@@ -355,33 +344,49 @@ const HomeScreen = ({ navigation }) => {
               outputRange: [0.8, 1, 0.8],
               extrapolate: 'clamp',
             }),
-          }]} 
+          }]}
           {...panResponder.panHandlers}
         >
           {!category && (
             <View>
-              <View style={styles.actionRow}>
-                <TouchableOpacity style={[styles.pillButton, { backgroundColor: theme.colors.background, borderColor: theme.colors.border, borderWidth: 1 }]} onPress={() => navigation.navigate("Home", { category: "project" })}>
-                  <Text style={[styles.pillButtonText, { color: theme.colors.text }]}>View All</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.pillButton, { backgroundColor: theme.colors.primary }]} onPress={() => setShowPicker(true)}>
-                  <Text style={[styles.pillButtonText, { color: theme.colors.white }]}>Pick Date</Text>
-                </TouchableOpacity>
-              </View>
+              {/* Date Picker Modal (Native Picker Only) */}
+              <Modal
+                visible={showDatePicker}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowDatePicker(false)}
+              >
+                <View style={{ flex: 1, justifyContent: 'center' }}>
+                  <DateTimePicker
+                    value={tempDate}
+                    mode="date"
+                    display={Platform.OS === 'android' ? 'calendar' : 'inline'}
+                    onChange={(event, date) => {
+                      if (Platform.OS === 'android' && event?.type === 'dismissed') {
+                        setShowDatePicker(false);
+                        return;
+                      }
+                      if (date) {
+                        setTempDate(date);
+                        setSelectedDate(date);
+                        setShowDatePicker(false);
+                      }
+                    }}
+                  />
+                </View>
+              </Modal>
+
               <View style={styles.dateStrip}>
-                <DateSelector selectedDateId={formatDateISO(selectedDate)} onDateChange={(id) => {
-                  if (!id) { setSelectedDate(new Date()); return; }
-                  try { setSelectedDate(new Date(id)); } catch { setSelectedDate(new Date()); }
-                }} />
-              </View>
-              {showPicker && (
-                <DateTimePicker
-                  value={selectedDate || new Date()}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={handlePickDate}
+                <DateSelector
+                  selectedDateId={formatDateISO(selectedDate)}
+                  onRequestPickDate={() => { setTempDate(selectedDate); setShowDatePicker(true); }}
+                  onDateChange={(id) => {
+                    if (!id) { setSelectedDate(new Date()); return; }
+                    try { setSelectedDate(new Date(id)); } catch { setSelectedDate(new Date()); }
+                  }}
                 />
-              )}
+              </View>
+
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>My Focus Today</Text>
                 <View style={styles.cardBox}>
@@ -590,4 +595,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.textSecondary,
   },
-  });
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  modalCard: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  modalActions: {
+    marginTop: 12,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+});
