@@ -66,10 +66,13 @@ export default function TaskStatusChange() {
       const taskId = task?.task_id || task?.id || task?._id;
       const payload = { status: selectedStatus, remarks };
       await updateTaskStatus(orgId, taskId, payload);
-      try { Toast.show({ type: 'custom_success', text1: 'Status updated', position: 'bottom', visibilityTime: 1500 }); } catch {}
-      navigation.goBack();
+      try { Toast.show({ type: 'success', text1: 'Status updated', position: 'bottom', visibilityTime: 1500 }); } catch {}
+      // Add a small delay to ensure the toast is visible before navigating back
+      setTimeout(() => {
+        navigation.goBack();
+      }, 500);
     } catch (e) {
-      try { Toast.show({ type: 'custom_error', text1: e?.message || 'Failed to update status', position: 'bottom', visibilityTime: 2000 }); } catch {}
+      try { Toast.show({ type: 'error', text1: e?.message || 'Failed to update status', position: 'bottom', visibilityTime: 2000 }); } catch {}
     } finally {
       setSubmitting(false);
     }

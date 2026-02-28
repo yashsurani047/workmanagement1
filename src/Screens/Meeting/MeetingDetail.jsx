@@ -1,8 +1,6 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Linking } from 'react-native';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, Calendar, Clock, MapPin, Users, Target, Info } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import theme from '../../Themes/Themes';
+import { useTheme } from '../../Themes/ThemeContext';
 import { getMeeting } from '../../Services/Meeting/MeetingsService';
 
 const fmtDate = (iso) => {
@@ -28,6 +26,8 @@ const durationMins = (startISO, endISO) => {
 };
 
 export default function MeetingDetail({ route, navigation }) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => stylesFactory(theme), [theme]);
   const meetingId = route?.params?.meetingId || route?.params?.meeting?.meeting_id || route?.params?.meeting?.id;
   const meetingParam = route?.params?.meeting || null;
   const [loading, setLoading] = useState(true);
@@ -84,18 +84,32 @@ export default function MeetingDetail({ route, navigation }) {
       if (!url) return;
       const safe = String(url).startsWith('http') ? url : `https://${url}`;
       await Linking.openURL(safe);
-    } catch {}
+    } catch { }
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
-      <View style={styles.appbar}>
-        <TouchableOpacity style={styles.appbarBack} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={20} color={theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.appbarTitle}>Meeting Details</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <View style={styles.safe}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={theme.colors.primary}
+        translucent={false}
+      />
+
+      <SafeAreaView
+        edges={['top', 'left', 'right']}
+        style={{ backgroundColor: theme.colors.primary }}
+      >
+        <View style={styles.appbar}>
+          <TouchableOpacity style={styles.appbarBack} onPress={() => navigation.goBack()}>
+            <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2.5} />
+          </TouchableOpacity>
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.appbarTitle}>Meeting Details</Text>
+            <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '500' }}>Overview</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
+      </SafeAreaView>
 
       <ScrollView contentContainerStyle={styles.container}>
         {loading ? (
@@ -218,11 +232,11 @@ export default function MeetingDetail({ route, navigation }) {
           <Text style={styles.secondaryBtnText}>Back</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
+const stylesFactory = (theme) => StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -230,105 +244,113 @@ const styles = StyleSheet.create({
   appbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 22,
+    backgroundColor: theme.colors.primary,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
   },
   appbarBack: {
-    width: 40,
-    height: 36,
+    width: 38,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: theme.radius.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
   appbarTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.text,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.4,
   },
   container: {
-    padding: theme.spacing.md,
-    paddingBottom: theme.spacing.lg,
+    padding: 18,
+    paddingBottom: 40,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: theme.spacing.lg,
+    padding: 20,
   },
   error: {
     color: theme.colors.primary,
-    fontSize: 16,
+    fontSize: 15,
     textAlign: 'center',
+    fontWeight: '600',
   },
   card: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.card,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
     shadowColor: theme.colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
     elevation: 3,
   },
   primaryCard: {
-    backgroundColor: theme.colors.background,
     borderWidth: 0,
+    backgroundColor: theme.colors.card,
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '800',
     color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
+    letterSpacing: -0.5,
   },
   desc: {
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.textSecondary,
-    lineHeight: 24,
+    lineHeight: 22,
+    fontWeight: '500',
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '800',
     color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 14,
+    letterSpacing: -0.3,
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: theme.spacing.sm,
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
     color: theme.colors.textSecondary,
-    width: 100,
+    width: 80,
   },
   value: {
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.text,
+    fontWeight: '600',
     flex: 1,
   },
   participant: {
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 8,
+    fontWeight: '500',
   },
   agendaItem: {
-    marginBottom: theme.spacing.sm,
+    marginBottom: 16,
+    paddingLeft: 4,
   },
   agendaTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '700',
     color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 4,
   },
   muted: {
     fontSize: 14,
@@ -338,22 +360,22 @@ const styles = StyleSheet.create({
   chipsRow: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: theme.spacing.sm,
-    color: theme.colors.primary,
+    marginTop: 12,
   },
   chip: {
-    backgroundColor: theme.colors.muted100,
-    paddingHorizontal: 10,
+    backgroundColor: `${theme.colors.primary}12`,
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: 20,
   },
   chipText: {
-    color: theme.colors.text,
-    fontWeight: '600',
-    fontSize: 12,
+    color: theme.colors.primary,
+    fontWeight: '700',
+    fontSize: 11,
+    textTransform: 'uppercase',
   },
   bottomBar: {
-    padding: theme.spacing.md,
+    padding: 20,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
     backgroundColor: theme.colors.background,
@@ -361,34 +383,36 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: theme.spacing.md,
+    marginTop: 20,
   },
   primaryBtn: {
     backgroundColor: theme.colors.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: theme.radius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 14,
   },
   primaryBtnText: {
-    color: theme.colors.background,
+    color: '#FFFFFF',
     fontWeight: '700',
+    fontSize: 15,
   },
   secondaryBtn: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: theme.radius.md,
-  },
-  secondaryBtnWide: {
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: theme.colors.border,
     paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+  },
+  secondaryBtnWide: {
+    borderWidth: 1.5,
+    borderColor: theme.colors.border,
+    paddingVertical: 14,
     alignItems: 'center',
-    borderRadius: theme.radius.md,
+    borderRadius: 16,
   },
   secondaryBtnText: {
-    color: theme.colors.text,
+    color: theme.colors.textSecondary,
     fontWeight: '700',
+    fontSize: 15,
   },
 });

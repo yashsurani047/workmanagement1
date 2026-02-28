@@ -14,6 +14,7 @@ export type RootStackParamList = {
   AddTask: undefined;
   Meeting: undefined;
   CreateEvent: undefined;
+  CreateSubTaskWizard: undefined;
 };
 
 // ✅ Global declaration for TypeScript

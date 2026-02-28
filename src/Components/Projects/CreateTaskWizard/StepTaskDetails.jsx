@@ -1,248 +1,272 @@
 // src/Components/CreateTaskWizard/StepTaskDetails.jsx
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput, Platform } from 'react-native';
-import theme from '../../../Themes/Themes';
-import { fetchProjects } from '../../../Services/Project/FetchOrganizationProjects';
-import DropdownSelect from '../../Common/DropdownSelect';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { useTheme } from '../../../Themes/ThemeContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import {
+  Type,
+  AlignLeft,
+  Flag,
+  Calendar,
+  Clock,
+  ChevronRight,
+  Check,
+} from 'lucide-react-native';
 
-export default function StepTaskDetails({ 
-  organizationId = 'one', 
-  selectedProject, 
-  onSelectProject, 
-  onNext, 
-  initialProjectId,
+const PRIORITY_OPTIONS = [
+  { label: 'Urgent & Important', value: 'urgent_important', color: '#EF4444' },
+  { label: 'Urgent & Not Important', value: 'urgent_not_important', color: '#F97316' },
+  { label: 'Not Urgent & Important', value: 'not_urgent_important', color: '#3B82F6' },
+  { label: 'Not Urgent & Not Imp.', value: 'not_urgent_not_important', color: '#6B7280' },
+];
+
+const STATUS_OPTIONS = [
+  { label: 'Not Started', value: 'not_started', color: '#EF4444' },
+  { label: 'In Progress', value: 'in_progress', color: '#F97316' },
+  { label: 'Completed', value: 'completed', color: '#3B82F6' },
+  { label: 'On Hold', value: 'on_hold', color: '#6B7280' },
+];
+
+const fmtDate = (d) => {
+  try { return d ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Select date'; }
+  catch { return 'Select date'; }
+};
+const fmtTime = (d) => {
+  try { return d ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Select time'; }
+  catch { return 'Select time'; }
+};
+
+// ─── Section Label ────────────────────────────────────────────────────────────
+const FieldLabel = ({ icon: Icon, label, color, required }) => {
+  const { theme } = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 7, marginTop: 16 }}>
+      <View style={{ width: 24, height: 24, borderRadius: 7, backgroundColor: `${color || theme.colors.primary}18`, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon size={12} color={color || theme.colors.primary} strokeWidth={2.2} />
+      </View>
+      <Text style={{ fontSize: 12.5, fontWeight: '700', color: theme.colors.text }}>{label}</Text>
+      {required && <Text style={{ fontSize: 12, color: '#EF4444', marginLeft: 1 }}>*</Text>}
+    </View>
+  );
+};
+
+export default function StepTaskDetails({
+  onNext,
   formData,
-  updateFormData
+  updateFormData,
 }) {
-  const [loading, setLoading] = React.useState(true);
-  const [projects, setProjects] = React.useState([]);
+  const { theme } = useTheme();
   const [showDuePicker, setShowDuePicker] = React.useState(false);
   const [showStartPicker, setShowStartPicker] = React.useState(false);
   const [showEndPicker, setShowEndPicker] = React.useState(false);
+  const [priorityOpen, setPriorityOpen] = React.useState(false);
+  const [statusOpen, setStatusOpen] = React.useState(false);
 
-  const {
-    title,
-    description,
-    priority,
-    dueDate,
-    allDay,
-    startTime,
-    endTime
-  } = formData;
+  const { title, description, priority, status, dueDate, allDay, startTime, endTime, remarks, estimatedTime } = formData;
+  const selectedPriority = PRIORITY_OPTIONS.find(p => p.value === priority);
+  const selectedStatus = STATUS_OPTIONS.find(s => s.value === status);
+  const canContinue = !!title?.trim();
 
-  React.useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const res = await fetchProjects(organizationId);
-        const source = Array.isArray(res?.projects) ? res.projects : (res?.success ? res.projects : []);
-        // TEMP: log the first few items to verify shape during debugging
-        try { console.log('[StepTaskDetails] fetched projects sample:', (source || []).slice(0, 3)); } catch {}
-        const normalized = Array.isArray(source)
-          ? source.map((p, idx) => {
-              const id = String(p?.project_id || p?.id || p?._id || idx);
-              const nameCand = [p?.name, p?.title, p?.project_name, p?.project_title]
-                .map(v => (typeof v === 'string' ? v.trim() : ''))
-                .find(v => v.length > 0);
-              const name = nameCand && nameCand.length > 0 ? nameCand : `Project ${id}`;
-              return { id, name };
-            })
-          : [];
-        if (mounted) setProjects(normalized);
-      } catch (_) {
-        if (mounted) setProjects([]);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => { mounted = false; };
-  }, [organizationId]);
-
-  React.useEffect(() => {
-    if (!initialProjectId || !projects?.length || selectedProject) return;
-    const found = projects.find(p => String(p.id) === String(initialProjectId));
-    if (found) onSelectProject?.(found);
-  }, [initialProjectId, projects, selectedProject, onSelectProject]);
-
-  const options = React.useMemo(() =>
-    (projects || []).map(p => {
-      const nm = typeof p?.name === 'string' ? p.name.trim() : '';
-      const label = nm.length > 0 ? nm : `Project ${p?.id || ''}`;
-      return { label: String(label), value: String(p.id) };
-    }),
-  [projects]);
-
-  const currentValue = selectedProject ? String(selectedProject.id) : '';
-
-  const handleInputChange = (field, value) => {
-    updateFormData({ [field]: value });
-  };
-  const priorityOptions = [
-    { label: 'Urgent & Important', value: 'urgent_important' },
-    { label: 'Urgent & Not Important', value: 'urgent_not_important' },
-    { label: 'Not Urgent & Important', value: 'not_urgent_important' },
-    { label: 'Not Urgent & Not Important', value: 'not_urgent_not_important' },
-  ];
-
-  const fmtDate = (d) => {
-    try { return d ? d.toLocaleDateString() : 'dd/mm/yyyy'; } catch { return 'dd/mm/yyyy'; }
-  };
-  const fmtTime = (d) => {
-    try { return d ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:-- --'; } catch { return '--:-- --'; }
-  };
+  const set = (field, value) => updateFormData({ [field]: value });
 
   return (
-    <View style={{ flex: 1 }}>
-      <Text style={styles.title}>Project</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 110 : 20}
+    >
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 16 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-      {loading ? (
-        <ActivityIndicator color={theme.colors.primary} />
-      ) : (
-        <DropdownSelect
-          label={undefined}
-          value={currentValue}
-          options={options}
-          onChange={(val) => {
-            const item = (projects || []).find(p => String(p.id) === String(val));
-            if (item) onSelectProject?.(item);
-          }}
+
+        {/* Task Title */}
+        <FieldLabel icon={Type} label="Task Title" required />
+        <TextInput
+          style={{ borderWidth: 1.5, borderColor: title ? theme.colors.primary : theme.colors.border, backgroundColor: theme.colors.muted100, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, fontWeight: '500', color: theme.colors.text }}
+          placeholder="What needs to be done?"
+          placeholderTextColor={theme.colors.textSecondary}
+          value={title}
+          onChangeText={(t) => set('title', t)}
+          returnKeyType="next"
         />
-      )}
 
-      <View style={styles.row2}>
-        <View style={styles.col}>
-          <Text style={styles.fieldLabel}>Priority</Text>
-          <DropdownSelect
-            value={priority}
-            options={priorityOptions}
-            onChange={(val) => handleInputChange('priority', val)}
-          />
+        {/* Priority */}
+        <FieldLabel icon={Flag} label="Priority" color="#EF4444" />
+        <View style={{ zIndex: 50 }}>
+          <TouchableOpacity
+            onPress={() => { setPriorityOpen(o => !o); setStatusOpen(false); }}
+            activeOpacity={0.8}
+            style={{
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+              borderWidth: 1.5, borderColor: theme.colors.border,
+              backgroundColor: theme.colors.muted100, borderRadius: 12,
+              paddingHorizontal: 14, paddingVertical: 11,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+              {selectedPriority
+                ? <><View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: selectedPriority.color }} /><Text style={{ fontSize: 13.5, fontWeight: '600', color: theme.colors.text }}>{selectedPriority.label}</Text></>
+                : <Text style={{ fontSize: 13.5, color: theme.colors.textSecondary }}>Select priority…</Text>
+              }
+            </View>
+            <ChevronRight size={14} color={theme.colors.textSecondary} strokeWidth={2}
+              style={{ transform: [{ rotate: priorityOpen ? '90deg' : '0deg' }] }} />
+          </TouchableOpacity>
+
+          {priorityOpen && (
+            <View style={{
+              position: 'absolute', top: 48, left: 0, right: 0, zIndex: 999,
+              backgroundColor: theme.colors.card, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border,
+              shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 12, overflow: 'hidden',
+            }}>
+              {PRIORITY_OPTIONS.map((opt, idx) => (
+                <TouchableOpacity key={opt.value} onPress={() => { set('priority', opt.value); setPriorityOpen(false); }} activeOpacity={0.7}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14,
+                    backgroundColor: priority === opt.value ? `${opt.color}12` : 'transparent',
+                    borderBottomWidth: idx < PRIORITY_OPTIONS.length - 1 ? 1 : 0, borderBottomColor: theme.colors.border
+                  }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: opt.color }} />
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: priority === opt.value ? opt.color : theme.colors.text, flex: 1 }}>{opt.label}</Text>
+                  {priority === opt.value && <Check size={13} color={opt.color} strokeWidth={3} />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
-      </View>
 
-      <Text style={styles.fieldLabel}>Task Title</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="What needs to be done?"
-        placeholderTextColor={theme.colors.textSecondary}
-        value={title}
-        onChangeText={(text) => handleInputChange('title', text)}
-      />
+        {/* STATUS */}
+        <FieldLabel icon={Flag} label="Status" color="#6366F1" />
+        <View style={{ zIndex: 40 }}>
+          <TouchableOpacity
+            onPress={() => { setStatusOpen(o => !o); setPriorityOpen(false); }}
+            activeOpacity={0.8}
+            style={{
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+              borderWidth: 1.5,
+              borderColor: theme.colors.border,
+              backgroundColor: theme.colors.muted100, borderRadius: 12,
+              paddingHorizontal: 14, paddingVertical: 11,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+              {selectedStatus
+                ? <><View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: selectedStatus.color }} /><Text style={{ fontSize: 13.5, fontWeight: '600', color: theme.colors.text }}>{selectedStatus.label}</Text></>
+                : <Text style={{ fontSize: 13.5, color: theme.colors.textSecondary }}>Select status…</Text>
+              }
+            </View>
+            <ChevronRight size={14} color={theme.colors.textSecondary} strokeWidth={2}
+              style={{ transform: [{ rotate: statusOpen ? '90deg' : '0deg' }] }} />
+          </TouchableOpacity>
 
-      <Text style={styles.fieldLabel}>Due Date</Text>
-      <TouchableOpacity 
-        style={styles.picker} 
-        onPress={() => setShowDuePicker(true)}
-      >
-        <Text style={styles.pickerText}>{fmtDate(dueDate)}</Text>
-      </TouchableOpacity>
-      {showDuePicker && (
-        <DateTimePicker
-          value={dueDate || new Date()}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'inline' : 'default'}
-          onChange={(e, d) => {
-            if (Platform.OS !== 'ios') setShowDuePicker(false);
-            if (e.type !== 'dismissed' && d) {
-              handleInputChange('dueDate', d);
-            }
-          }}
-        />
-      )}
-
-      <Text style={styles.fieldLabel}>Description</Text>
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        multiline
-        placeholder="Add details about the task..."
-        placeholderTextColor={theme.colors.textSecondary}
-        value={description}
-        onChangeText={(text) => handleInputChange('description', text)}
-      />
-
-      <View style={styles.allDayRow}>
-        <TouchableOpacity 
-          onPress={() => handleInputChange('allDay', !allDay)} 
-          style={styles.checkbox}
-        >
-          <View style={[styles.checkboxBox, allDay && styles.checkboxBoxChecked]} />
-        </TouchableOpacity>
-        <Text style={styles.allDayText}>All-day event</Text>
-      </View>
-
-      {!allDay && (
-        <View style={styles.row2}>
-          <View style={styles.col}>
-            <Text style={styles.fieldLabel}>Start Time</Text>
-            <TouchableOpacity style={styles.picker} onPress={() => setShowStartPicker(true)}>
-              <Text style={styles.pickerText}>{fmtTime(startTime)}</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.col}>
-            <Text style={styles.fieldLabel}>End Time</Text>
-            <TouchableOpacity style={styles.picker} onPress={() => setShowEndPicker(true)}>
-              <Text style={styles.pickerText}>{fmtTime(endTime)}</Text>
-            </TouchableOpacity>
-          </View>
+          {statusOpen && (
+            <View style={{
+              position: 'absolute', top: 48, left: 0, right: 0, zIndex: 999,
+              backgroundColor: theme.colors.card, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border,
+              shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 12, overflow: 'hidden',
+            }}>
+              {STATUS_OPTIONS.map((opt, idx) => (
+                <TouchableOpacity key={opt.value} onPress={() => { set('status', opt.value); setStatusOpen(false); }} activeOpacity={0.7}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14,
+                    backgroundColor: status === opt.value ? `${opt.color}12` : 'transparent',
+                    borderBottomWidth: idx < STATUS_OPTIONS.length - 1 ? 1 : 0, borderBottomColor: theme.colors.border
+                  }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: opt.color }} />
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: status === opt.value ? opt.color : theme.colors.text, flex: 1 }}>{opt.label}</Text>
+                  {status === opt.value && <Check size={13} color={opt.color} strokeWidth={3} />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
-      )}
 
-      {showStartPicker && (
-        <DateTimePicker
-          value={startTime || new Date()}
-          mode="time"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(e, d) => {
-            if (Platform.OS !== 'ios') setShowStartPicker(false);
-            if (e.type !== 'dismissed' && d) {
-              handleInputChange('startTime', d);
-            }
+        {/* Remarks */}
+        <FieldLabel icon={Type} label="Remarks" />
+        <TextInput
+          style={{
+            borderWidth: 1.5,
+            borderColor: remarks ? theme.colors.primary : theme.colors.border,
+            backgroundColor: theme.colors.muted100, borderRadius: 12,
+            paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, fontWeight: '500', color: theme.colors.text,
           }}
+          placeholder="Enter remarks…"
+          placeholderTextColor={theme.colors.textSecondary}
+          value={remarks}
+          onChangeText={(t) => set('remarks', t)}
+          returnKeyType="next"
+          multiline
+          numberOfLines={2}
+          textAlignVertical="top"
         />
-      )}
-      {showEndPicker && (
-        <DateTimePicker
-          value={endTime || new Date()}
-          mode="time"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(e, d) => {
-            if (Platform.OS !== 'ios') setShowEndPicker(false);
-            if (e.type !== 'dismissed' && d) {
-              handleInputChange('endTime', d);
-            }
-          }}
-        />
-      )}
 
-      <View style={styles.footer}>
+        {/* Estimated Time */}
+        <FieldLabel icon={Clock} label="Estimated Time" color="#8B5CF6" />
+        <TextInput
+          style={{ borderWidth: 1.5, borderColor: estimatedTime ? theme.colors.primary : theme.colors.border, backgroundColor: theme.colors.muted100, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, fontWeight: '500', color: theme.colors.text }}
+          placeholder="e.g. 2 hours, 30 mins…"
+          placeholderTextColor={theme.colors.textSecondary}
+          value={estimatedTime}
+          onChangeText={(t) => set('estimatedTime', t)}
+          returnKeyType="next"
+        />
+
+        {/* Due Date */}
+        <FieldLabel icon={Calendar} label="Due Date" color="#10B981" />
         <TouchableOpacity
-          style={[styles.primaryBtn, !selectedProject && { opacity: 0.5 }]}
-          onPress={onNext}
-          disabled={!selectedProject}
+          onPress={() => setShowDuePicker(true)}
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderColor: theme.colors.border, backgroundColor: theme.colors.muted100, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11 }}
         >
-          <Text style={styles.primaryBtnText}>Continue</Text>
+          <Text style={{ fontSize: 13.5, fontWeight: '500', color: dueDate ? theme.colors.text : theme.colors.textSecondary }}>{fmtDate(dueDate)}</Text>
+          <Calendar size={15} color={theme.colors.textSecondary} strokeWidth={2} />
         </TouchableOpacity>
-      </View>
-    </View>
+        {showDuePicker && (
+          <DateTimePicker value={dueDate || new Date()} mode="date" display={Platform.OS === 'ios' ? 'inline' : 'default'}
+            onChange={(e, d) => { if (Platform.OS !== 'ios') setShowDuePicker(false); if (e.type !== 'dismissed' && d) set('dueDate', d); }} />
+        )}
+
+        {/* Description */}
+        <FieldLabel icon={AlignLeft} label="Description" color={theme.colors.secondary} />
+        <TextInput
+          style={{ borderWidth: 1.5, borderColor: description ? theme.colors.primary : theme.colors.border, backgroundColor: theme.colors.muted100, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, fontWeight: '500', color: theme.colors.text, height: 100, textAlignVertical: 'top' }}
+          multiline
+          placeholder="Add details about the task…"
+          placeholderTextColor={theme.colors.textSecondary}
+          value={description}
+          onChangeText={(t) => set('description', t)}
+        />
+
+        {/* Start / End Time */}
+
+
+        {/* Continue button */}
+        <TouchableOpacity
+          onPress={onNext}
+          disabled={!canContinue}
+          activeOpacity={0.8}
+          style={{
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+            marginTop: 24, paddingVertical: 14, borderRadius: 14,
+            backgroundColor: theme.colors.primary,
+            opacity: canContinue ? 1 : 0.45,
+            shadowColor: theme.colors.primary,
+            shadowOpacity: canContinue ? 0.3 : 0,
+            shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
+            elevation: canContinue ? 6 : 0,
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFF', letterSpacing: 0.2 }}>Next: Assignment</Text>
+          <ChevronRight size={18} color="#FFF" strokeWidth={2.5} />
+        </TouchableOpacity>
+
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  title: { fontSize: 14, fontWeight: '700', color: theme.colors.text, marginBottom: 8 },
-  fieldLabel: { color: theme.colors.text, marginTop: 12, marginBottom: 6, fontWeight: '700' },
-  input: { borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.background, borderRadius: 8, padding: 12, color: theme.colors.text },
-  textArea: { height: 100, textAlignVertical: 'top' },
-  row2: { flexDirection: 'row', gap: 12 },
-  col: { flex: 1 },
-  picker: { borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.background, borderRadius: 8, padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  pickerText: { color: theme.colors.text, fontWeight: '600' },
-  allDayRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
-  checkbox: { padding: 4 },
-  checkboxBox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.background },
-  checkboxBoxChecked: { backgroundColor: theme.colors.primary + '55', borderColor: theme.colors.primary },
-  allDayText: { color: theme.colors.text },
-  footer: { marginTop: 16, alignItems: 'flex-end' },
-  primaryBtn: { backgroundColor: theme.colors.primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
-  primaryBtnText: { color: theme.colors.white, fontWeight: '700' },
-});

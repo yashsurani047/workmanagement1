@@ -16,8 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Search, Bell } from 'lucide-react-native';
-import theme from '../../Themes/Themes';
-// Removed app logo per request
+import { useTheme } from '../../Themes/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUserProfile } from '../../Services/Common/authServices';
 import { BASE_URL } from '../../Config/api';
@@ -26,6 +25,7 @@ import Drawerbar from './Drawerbar';
 const { width } = Dimensions.get('window');
 
 const TopNavbar = () => {
+  const { theme } = useTheme();
   const navigation = useNavigation();
   const [fullName, setFullName] = React.useState('User');
   const [avatar, setAvatar] = React.useState(null);
@@ -35,7 +35,6 @@ const TopNavbar = () => {
   const pressAnim = React.useRef(new Animated.Value(1)).current;
   const spinnerAnim = React.useRef(new Animated.Value(0)).current;
 
-  // Final scale = pulse (looping) * press (tap zoom)
   const combinedScale = Animated.multiply(pulseAnim, pressAnim);
 
   const getGreeting = () => {
@@ -76,7 +75,7 @@ const TopNavbar = () => {
               setAvatar(buildAvatarUri(photoVal));
               return;
             }
-          } catch {}
+          } catch { }
         }
         const raw = await AsyncStorage.getItem('userInfo');
         const info = raw ? JSON.parse(raw) : null;
@@ -84,7 +83,7 @@ const TopNavbar = () => {
         const photo = info?.avatar || info?.profile_image || info?.photo_url || null;
         setFullName(name);
         setAvatar(photo);
-      } catch {}
+      } catch { }
     };
     loadUser();
   }, []);
@@ -100,7 +99,7 @@ const TopNavbar = () => {
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
-          toValue: 0.92,
+          toValue: 1,
           duration: 800,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
@@ -133,33 +132,31 @@ const TopNavbar = () => {
       setTimeout(() => {
         navigation.reset && navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
       }, 150);
-    } catch (e) {}
+    } catch (e) { }
   };
 
-  // Smooth zoom in / zoom out on avatar tap
   const handleAvatarPress = () => {
     Animated.sequence([
       Animated.timing(pressAnim, {
-        toValue: 1.2,              // zoom in
+        toValue: 1.2,
         duration: 180,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
       Animated.timing(pressAnim, {
-        toValue: 1,                // zoom back
+        toValue: 1,
         duration: 180,
         easing: Easing.in(Easing.quad),
         useNativeDriver: true,
       }),
     ]).start(() => {
-      // Open drawer after animation completes
       setDrawerVisible(true);
     });
   };
 
   return (
     <SafeAreaView
-      style={styles.safeArea}
+      style={[s.safeArea, { backgroundColor: theme.colors.primary }]}
       edges={Platform.OS === 'ios' ? ['top', 'left', 'right'] : ['top', 'left', 'right']}
     >
       <StatusBar
@@ -168,29 +165,31 @@ const TopNavbar = () => {
         translucent={false}
       />
 
-      {/* Top Row removed (logo and bell icon) */}
-      <View style={styles.topNavbar} />
 
-      <View style={styles.greetingRow}>
-        <View style={styles.leftRow}>
+      <View style={s.greetingRow}>
+        <View style={s.leftRow}>
           <TouchableOpacity
             onPress={handleAvatarPress}
             activeOpacity={0.8}
           >
-            <View style={styles.avatarContainer}>
+            <View style={s.avatarContainer}>
               <Animated.Image
                 source={avatar ? { uri: avatar } : { uri: 'https://i.pravatar.cc/150?img=3' }}
                 style={[
-                  styles.avatar,
+                  s.avatar,
                   {
                     transform: [{ scale: combinedScale }],
+                    borderColor: 'rgba(255,255,255,0.4)',
+                    borderWidth: 1.5,
                   },
                 ]}
               />
               <Animated.View
                 style={[
-                  styles.spinnerRing,
+                  s.spinnerRing,
                   {
+                    borderColor: 'rgba(255,255,255,0.3)',
+                    borderTopColor: '#FFF',
                     transform: [
                       {
                         rotate: spinnerAnim.interpolate({
@@ -204,23 +203,21 @@ const TopNavbar = () => {
               />
             </View>
           </TouchableOpacity>
-          <Text style={styles.greeting} numberOfLines={1}>
-            {getGreeting()}, {fullName}!
-          </Text>
+          <View style={{ marginLeft: 12 }}>
+            <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600' }}>
+              {getGreeting()},
+            </Text>
+            <Text style={{ fontSize: 18, fontWeight: '800', color: '#FFF', letterSpacing: -0.4 }} numberOfLines={1}>
+              {fullName}!
+            </Text>
+          </View>
         </View>
-        <TouchableOpacity style={styles.bellButton} activeOpacity={0.7}>
-          <Bell size={22} color={theme.colors.white} />
-        </TouchableOpacity>
-      </View>
 
-      {/* Search Bar with Icon Prefix */}
-      <View style={styles.searchContainer}>
-        <Search size={16} color={theme.colors.gray} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search..."
-          placeholderTextColor={theme.colors.gray}
-        />
+        <TouchableOpacity style={s.actionButton} activeOpacity={0.7}>
+          <View style={s.iconBadge}>
+            <Bell size={20} color="#FFF" />
+          </View>
+        </TouchableOpacity>
       </View>
 
       {/* Drawer overlay */}
@@ -233,39 +230,27 @@ const TopNavbar = () => {
   );
 };
 
-const styles = StyleSheet.create({
-   safeArea: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 4 : 10,
-    paddingBottom: Platform.OS === 'ios' ? 4 : 10,
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
-    marginBottom: Platform.OS === 'ios' ? 30 : 44,
+const s = StyleSheet.create({
+  safeArea: {
+    paddingTop: Platform.OS === 'ios' ? 0 : 2,
+    paddingBottom: 12,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    marginBottom: 0,
   },
   topNavbar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    maxWidth: width * 0.7,
-  },
-  appName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.white,
-    marginLeft: 10,
-    flexShrink: 1,
+    paddingHorizontal: 16,
   },
   greetingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 30,
+    marginBottom: 2,
+    paddingHorizontal: 20,
+    marginTop: 8,
   },
   leftRow: {
     flexDirection: 'row',
@@ -275,72 +260,41 @@ const styles = StyleSheet.create({
   avatarContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 4,
   },
   avatar: {
     width: 40,
     height: 40,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: theme.colors.white,
+    borderRadius: 23,
   },
   spinnerRing: {
     position: 'absolute',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 27,
     borderWidth: 1.5,
-    borderColor: theme.colors.white,
-    borderTopColor: 'transparent',
-    borderLeftColor: 'transparent',
-    opacity: 0.4,
   },
-  bellButton: {
-    padding: 6,
-    alignSelf: 'flex-start',
-    marginTop: 6,
-  },
-  textContainer: {
-    marginLeft: 10,
-    flex: 1,
-  },
-  greeting: {
-    color: theme.colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 10,
-  },
-  subGreeting: {
-    color: theme.colors.white,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  searchContainer: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: -16, // push search a bit lower so it doesn't cover avatar/greeting
-    zIndex: 100,
-    flexDirection: 'row',
+  iconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
-    backgroundColor: theme.colors.white,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 45,
-    alignSelf: 'center',
-    paddingVertical: Platform.OS === 'android' ? 6 : 8,
-    shadowColor: theme.colors.shadow,
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 8,
+    justifyContent: 'center',
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: theme.colors.black,
-    marginLeft: 8, //  Space between icon and text
-    paddingVertical: 0, // Prevents extra internal padding (especially on iOS)
+  notifDot: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF3B30',
+    borderWidth: 1.5,
+    borderColor: '#008080', // same as primary
+  },
+  statusRow: {
+    height: 0,
+    opacity: 0,
   },
 });
 

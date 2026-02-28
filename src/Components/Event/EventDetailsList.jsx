@@ -16,13 +16,66 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Plus, Calendar, MoreVertical, Edit3, X, Trash2 } from "lucide-react-native";
-import theme from "../../Themes/Themes";
+import { Plus, Calendar, MoreVertical, Edit3, X, Trash2, Clock } from "lucide-react-native";
+import { useTheme } from "../../Themes/ThemeContext";
 import Toast from "react-native-toast-message";
-import { getOrganizationEvents, getUserEvents, deleteEvent } from "../../Services/Event/EventServices";
+import TopNavbar from "../Common/Topnavbar";
+
+const MOCK_EVENTS = [
+  {
+    event_id: "1",
+    title: "Quarterly Team Sync",
+    description: "Discussing Q1 goals and team performance metrics.",
+    start_time: new Date(Date.now() + 86400000).toISOString(),
+    end_time: new Date(Date.now() + 86400000 + 3600000).toISOString(),
+    location: "Conference Room A",
+    event_type: "internal",
+    visibility: "default"
+  },
+  {
+    event_id: "2",
+    title: "New Product Launch",
+    description: "External presentation for the upcoming mobile app release.",
+    start_time: new Date(Date.now() + 172800000).toISOString(),
+    end_time: new Date(Date.now() + 172800000 + 7200000).toISOString(),
+    location: "Virtual (Zoom)",
+    event_type: "external",
+    visibility: "public"
+  },
+  {
+    event_id: "3",
+    title: "UI/UX Workshop",
+    description: "Internal training session for design principles.",
+    start_time: new Date(Date.now() - 86400000).toISOString(),
+    end_time: new Date(Date.now() - 86400000 + 3600000).toISOString(),
+    location: "Design Lab",
+    event_type: "internal",
+    visibility: "default"
+  },
+  {
+    event_id: "4",
+    title: "Client Feedback Session",
+    description: "Weekly catch-up with the key stakeholders from XYZ Corp.",
+    start_time: new Date(Date.now() + 259200000).toISOString(),
+    end_time: new Date(Date.now() + 259200000 + 1800000).toISOString(),
+    location: "Client Office",
+    event_type: "external",
+    visibility: "private"
+  },
+  {
+    event_id: "5",
+    title: "Annual Sports Day",
+    description: "Company-wide outdoor event for team building.",
+    start_time: new Date(Date.now() + 604800000).toISOString(),
+    end_time: new Date(Date.now() + 604800000 + 28800000).toISOString(),
+    location: "Central Park Stadium",
+    event_type: "internal",
+    visibility: "public"
+  }
+];
 
 // helper: minimal shimmer card (Animated)
-const ShimmerCard = () => {
+const ShimmerCard = ({ theme }) => {
   const shimmer = new Animated.Value(0);
   useEffect(() => {
     const loop = Animated.loop(
@@ -37,9 +90,22 @@ const ShimmerCard = () => {
 
   const bg = shimmer.interpolate({ inputRange: [0, 1], outputRange: [theme.colors.muted100, theme.colors.muted200] });
   return (
-    <View style={[styles.card, styles.shadow, { flexDirection: "row", marginBottom: 12 }]}>
-      <View style={[styles.leftStripe, { backgroundColor: theme.colors.event }]} />
-      <View style={styles.body}>
+    <View style={{
+      backgroundColor: theme.colors.card,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      overflow: "hidden",
+      flexDirection: "row",
+      marginBottom: 12,
+      shadowColor: theme.colors.shadow,
+      shadowOpacity: 0.06,
+      shadowRadius: 4,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+    }}>
+      <View style={{ width: 6, backgroundColor: theme.colors.event }} />
+      <View style={{ flex: 1, padding: 14 }}>
         <Animated.View style={{ height: 16, width: "60%", borderRadius: 6, backgroundColor: bg }} />
         <Animated.View style={{ height: 12, width: "45%", borderRadius: 6, backgroundColor: bg, marginTop: 10 }} />
       </View>
@@ -55,25 +121,7 @@ const formatDateISO = (d) => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
-const timeRange = (startISO, endISO) => {
-  try {
-    const s = new Date(startISO);
-    const e = new Date(endISO);
-    const fmt = (dt) => {
-      let h = dt.getHours();
-      const m = String(dt.getMinutes()).padStart(2, "0");
-      const ampm = h >= 12 ? "PM" : "AM";
-      h = h % 12;
-      if (h === 0) h = 12;
-      return `${String(h).padStart(2, "0")}:${m} ${ampm}`;
-    };
-    return `${fmt(s)} - ${fmt(e)}`;
-  } catch {
-    return "";
-  }
-};
-
-const EventCard = ({ event, onPress, onMenu, showMenu = true }) => {
+const EventCard = ({ event, onPress, onMenu, showMenu = true, theme }) => {
   const title = event?.title || event?.name || "Untitled Event";
   const descr = event?.description || "";
   const startVal = event?.start_time || event?.start_date;
@@ -98,43 +146,53 @@ const EventCard = ({ event, onPress, onMenu, showMenu = true }) => {
     };
     startTimeStr = fmt(ds);
     endTimeStr = fmt(de);
-  } catch {}
+  } catch { }
 
   return (
-    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[styles.card, styles.shadow, { flexDirection: "row" }]}>
-      <View style={[styles.leftStripe, { backgroundColor: theme.colors.event }]} />
-      <View style={styles.body}>
-        <View style={styles.topRow}>
-          <Text style={styles.title} numberOfLines={1}>
+    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={{
+      backgroundColor: theme.colors.card,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      overflow: "hidden",
+      flexDirection: "row",
+      shadowColor: theme.colors.shadow,
+      shadowOpacity: 0.05,
+      shadowRadius: 3,
+      shadowOffset: { width: 0, height: 1 },
+      elevation: 2,
+    }}>
+      <View style={{ width: 4, backgroundColor: theme.colors.event }} />
+      <View style={{ flex: 1, padding: 10 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <Text style={{ fontSize: 14.5, fontWeight: "700", color: theme.colors.text, flex: 1, marginRight: 8 }} numberOfLines={1}>
             {title}
           </Text>
           {showMenu && (
-            <TouchableOpacity style={styles.itemIconBtn} onPress={onMenu}>
-              <MoreVertical size={18} color={theme.colors.text} />
+            <TouchableOpacity style={{ borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, padding: 4 }} onPress={onMenu}>
+              <MoreVertical size={14} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
 
-        {!!descr && <Text style={styles.desc} numberOfLines={2}>{descr}</Text>}
+        {!!descr && <Text style={{ marginTop: 2, color: theme.colors.textSecondary, fontSize: 12 }} numberOfLines={1}>{descr}</Text>}
 
-        <View style={styles.metaRow}>
+        <View style={{ flexDirection: "row", alignItems: "center", flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
           {!!startDateStr && (
-            <View style={[styles.dateChip, { backgroundColor: `${theme.colors.event}15`, borderColor: `${theme.colors.event}40`, marginRight: 8 }]}>
-              <Calendar size={12} color={theme.colors.event} />
-              <Text style={[styles.dateChipText, { color: theme.colors.event, marginLeft: 6 }]}>{startDateStr}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Calendar size={11} color={theme.colors.event} />
+              <Text style={{ fontSize: 11, fontWeight: "600", color: theme.colors.event, marginLeft: 4 }}>{startDateStr}</Text>
             </View>
           )}
-          {!!startTimeStr && <Text style={styles.meta}>{startTimeStr}</Text>}
-        </View>
 
-        <View style={[styles.metaRow, { marginTop: 6 }]}>
-          {!!endDateStr && (
-            <View style={[styles.dateChip, { backgroundColor: `${theme.colors.event}15`, borderColor: `${theme.colors.event}40`, marginRight: 8 }]}>
-              <Calendar size={12} color={theme.colors.event} />
-              <Text style={[styles.dateChipText, { color: theme.colors.event, marginLeft: 6 }]}>{endDateStr}</Text>
+          {(!!startTimeStr || !!endTimeStr) && (
+            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: theme.colors.muted100, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+              <Clock size={11} color={theme.colors.textSecondary} />
+              <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginLeft: 4 }}>
+                {startTimeStr}{endTimeStr ? ` - ${endTimeStr}` : ''}
+              </Text>
             </View>
           )}
-          {!!endTimeStr && <Text style={styles.meta}>{endTimeStr}</Text>}
         </View>
       </View>
     </TouchableOpacity>
@@ -142,54 +200,39 @@ const EventCard = ({ event, onPress, onMenu, showMenu = true }) => {
 };
 
 export default function EventDetailsList(props) {
+  const { theme } = useTheme();
   const navigation = useNavigation();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [selectedDate] = useState(() => formatDateISO(new Date()));
-  const [canUserActions, setCanUserActions] = useState(false); // true if userId exists
+  const [canUserActions, setCanUserActions] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuEvent, setMenuEvent] = useState(null);
 
   const load = useCallback(
     async (opts = { silent: false }) => {
-      try {
-        if (!opts?.silent) setLoading(true);
-        setError("");
-        const userInfoRaw = await AsyncStorage.getItem("userInfo");
-        const userInfo = userInfoRaw ? JSON.parse(userInfoRaw) : null;
-        const organizationId = (await AsyncStorage.getItem("organization_id")) || userInfo?.organization_id || "one";
-        const storedUserId = await AsyncStorage.getItem("user_id");
-        const userId = storedUserId || userInfo?.user_id || "";
-        setCanUserActions(!!userId);
+      if (!opts?.silent) setLoading(true);
+      setError("");
 
-        let data;
-        if (userId) {
-          data = await getUserEvents(organizationId, userId);
-        } else {
-          data = await getOrganizationEvents(organizationId, selectedDate);
-        }
+      // Simulate network delay
+      await new Promise(r => setTimeout(r, 600));
 
-        const events = Array.isArray(data?.events) ? data.events : Array.isArray(data) ? data : [];
-        // Sort by start date ascending
-        events.sort((a, b) => {
-          const da = new Date(a.start_time || a.start_date || a.date || 0).getTime();
-          const db = new Date(b.start_time || b.start_date || b.date || 0).getTime();
-          return da - db;
-        });
-        setList(events);
-      } catch (e) {
-        setError(e?.message || "Failed to load events");
-        setList([]);
-      } finally {
-        if (!opts?.silent) setLoading(false);
-      }
+      const events = [...MOCK_EVENTS];
+      events.sort((a, b) => {
+        const da = new Date(a.start_time || a.start_date || a.date || 0).getTime();
+        const db = new Date(b.start_time || b.start_date || b.date || 0).getTime();
+        return da - db;
+      });
+
+      setList(events);
+      setCanUserActions(true);
+      if (!opts?.silent) setLoading(false);
     },
-    [selectedDate]
+    []
   );
 
-  // If parent passes items, use them (no fetch). Otherwise load.
   useEffect(() => {
     if (Array.isArray(props?.items) && props.items.length > 0) {
       const itemsCopy = [...props.items];
@@ -205,7 +248,6 @@ export default function EventDetailsList(props) {
     }
   }, [props?.items, load]);
 
-  // reload when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       load({ silent: true });
@@ -219,26 +261,35 @@ export default function EventDetailsList(props) {
   }, [load]);
 
   const handleDelete = async (id) => {
-    try {
-      await deleteEvent(String(id));
-      Toast.show({ type: "custom_success", text1: "Event deleted", position: "bottom", visibilityTime: 1400 });
-      setList((prev) => prev.filter((e) => String(e?.event_id || e?.id) !== String(id)));
-    } catch (e) {
-      Toast.show({ type: "custom_error", text1: e?.message || "Failed to delete", position: "bottom" });
-    }
+    // Mock delete
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 400));
+    setList((prev) => prev.filter((e) => String(e?.event_id || e?.id) !== String(id)));
+    setLoading(false);
+    Toast.show({ type: "success", text1: "Event deleted (Mock)", position: "bottom", visibilityTime: 1400 });
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={["bottom"]}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Events</Text>
-        <View style={styles.headerActions}>
-          {canUserActions && (
-            <TouchableOpacity style={[styles.headerIconBtn, { marginLeft: 10 }]} onPress={() => navigation.navigate("CreateEvent")}>
-              <Plus size={16} color={theme.colors.primary} />
-            </TouchableOpacity>
-          )}
-        </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={["bottom"]}>
+      <TopNavbar navigation={navigation} />
+
+      <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Text style={{ fontSize: 20, fontWeight: "800", color: theme.colors.text }}>Upcoming Events</Text>
+        <TouchableOpacity
+          style={{
+            backgroundColor: theme.colors.primary,
+            borderRadius: 10,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6
+          }}
+          onPress={() => navigation.navigate("CreateEvent")}
+        >
+          <Plus size={16} color="#FFF" strokeWidth={3} />
+          <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>New Event</Text>
+        </TouchableOpacity>
       </View>
 
       {error ? (
@@ -250,7 +301,7 @@ export default function EventDetailsList(props) {
       {loading ? (
         <View style={{ padding: 16 }}>
           {Array.from({ length: Math.max(3, Math.ceil((Dimensions.get("window").height - 240) / 110)) }).map((_, i) => (
-            <ShimmerCard key={i} />
+            <ShimmerCard key={i} theme={theme} />
           ))}
         </View>
       ) : (
@@ -260,10 +311,8 @@ export default function EventDetailsList(props) {
           renderItem={({ item }) => (
             <EventCard
               event={item}
-              onPress={() => {
-                // navigate to event details if you have a route
-                // navigation.navigate('EventDetail', { event: item });
-              }}
+              theme={theme}
+              onPress={() => { }}
               onMenu={() => {
                 setMenuEvent(item);
                 setMenuVisible(true);
@@ -286,23 +335,23 @@ export default function EventDetailsList(props) {
 
       {/* Per-item menu modal */}
       <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
-        <Pressable style={styles.menuBackdrop} onPress={() => setMenuVisible(false)}>
-          <View style={styles.menuSheet}>
-            <Text style={styles.menuTitle}>Event actions</Text>
+        <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.25)", justifyContent: "flex-end" }} onPress={() => setMenuVisible(false)}>
+          <View style={{ backgroundColor: theme.colors.card, padding: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
+            <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginBottom: 8, paddingHorizontal: 4 }}>Event actions</Text>
 
             <TouchableOpacity
-              style={styles.menuItem}
+              style={{ flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 8 }}
               onPress={() => {
                 setMenuVisible(false);
                 navigation.navigate("CreateEvent", { event: menuEvent });
               }}
             >
               <Edit3 size={16} color={theme.colors.text} />
-              <Text style={styles.menuItemText}>Edit Event</Text>
+              <Text style={{ color: theme.colors.text, fontSize: 15, fontWeight: "600", marginLeft: 10 }}>Edit Event</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.menuItem}
+              style={{ flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 8 }}
               onPress={() => {
                 const id = menuEvent?.event_id || menuEvent?.id;
                 Alert.alert("Delete event", "Are you sure you want to delete this event?", [
@@ -319,12 +368,12 @@ export default function EventDetailsList(props) {
               }}
             >
               <Trash2 size={16} color={theme.colors.error} />
-              <Text style={[styles.menuItemText, { color: theme.colors.error }]}>Delete</Text>
+              <Text style={{ color: theme.colors.error, fontSize: 15, fontWeight: "600", marginLeft: 10 }}>Delete</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
+            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 8 }} onPress={() => setMenuVisible(false)}>
               <X size={16} color={theme.colors.textSecondary} />
-              <Text style={[styles.menuItemText, { color: theme.colors.textSecondary }]}>Cancel</Text>
+              <Text style={{ color: theme.colors.textSecondary, fontSize: 15, fontWeight: "600", marginLeft: 10 }}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </Pressable>
@@ -332,38 +381,3 @@ export default function EventDetailsList(props) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: theme.colors.background },
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-   // borderBottomWidth: 1,
-    //borderBottomColor: theme.colors.border,
-  },
-  headerTitle: { fontSize: 22, fontWeight: "700", color: theme.colors.text },
-  headerActions: { flexDirection: "row", alignItems: "center" },
-  headerIconBtn: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: 50, padding: 6 },
-  itemIconBtn: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: 50, padding: 6 },
-  card: { backgroundColor: theme.colors.white, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.muted100, overflow: "hidden" },
-  leftStripe: { width: 6 },
-  shadow: { shadowColor: theme.colors.shadow, shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-  body: { flex: 1, padding: 14 },
-  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  title: { fontSize: 16.5, fontWeight: "700", color: theme.colors.text, flex: 1, marginRight: 8 },
-  desc: { marginTop: 4, color: theme.colors.textSecondary, fontSize: 13.5 },
-  metaRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-start" },
-  meta: { color: theme.colors.textSecondary, fontSize: 12.5 },
-  dateChip: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, borderWidth: 1 },
-  dateChipText: { fontSize: 12, fontWeight: "600", marginLeft: 6 },
-
-  // Menu styles
-  menuBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.25)", justifyContent: "flex-end" },
-  menuSheet: { backgroundColor: theme.colors.background, padding: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  menuTitle: { color: theme.colors.textSecondary, fontSize: 12, marginBottom: 8, paddingHorizontal: 4 },
-  menuItem: { flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 8 },
-  menuItemText: { color: theme.colors.text, fontSize: 15, fontWeight: "600", marginLeft: 10 },
-});

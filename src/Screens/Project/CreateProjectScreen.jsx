@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, Alert, Dimensions, Animated, Platform, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Alert, Dimensions, Animated, Platform } from "react-native";
 import { launchImageLibrary } from 'react-native-image-picker';
 import { SafeAreaView } from "react-native-safe-area-context";
 import theme from "../../Themes/Themes";
@@ -178,7 +178,7 @@ export default function CreateProjectScreen({ navigation, route }) {
           }
         })();
       }
-    } catch {}
+    } catch { }
   }, [route?.params]);
 
   const toggleColorPicker = () => {
@@ -249,7 +249,7 @@ export default function CreateProjectScreen({ navigation, route }) {
           size: a.fileSize || 0,
         }));
         if (picked.length > 0) {
-          setFormData((prev) => ({ ...prev, attachments: [ ...(prev.attachments || []), ...picked ] }));
+          setFormData((prev) => ({ ...prev, attachments: [...(prev.attachments || []), ...picked] }));
         }
       });
     } catch (e) {
@@ -323,7 +323,7 @@ export default function CreateProjectScreen({ navigation, route }) {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <ProjectStepper currentStep={step} title={isEditMode ? "Edit Project" : "Create New Project"} />
-      <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+      <View style={[styles.body, styles.bodyContent]}>
         {step === 1 && (
           <ProjectDetailsTab
             styles={styles}
@@ -393,7 +393,7 @@ export default function CreateProjectScreen({ navigation, route }) {
             setActiveTab={() => setStep(2)}
           />
         )}
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -402,9 +402,9 @@ function createStyles() {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: theme.colors.background },
     body: { flex: 1 },
-    bodyContent: { padding: 16, paddingBottom: 24 },
+    bodyContent: { flex: 1, padding: 10, paddingBottom: 10 },
     // Shared styles expected by tabs (subset)
-    tabContent: { paddingTop: 8 },
+    tabContent: { flex: 1, paddingTop: 4 },
     label: { fontSize: 14, fontWeight: "600", marginBottom: 8, color: theme.colors.text },
     input: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: theme.colors.background },
     textArea: { minHeight: 80, textAlignVertical: "top" },

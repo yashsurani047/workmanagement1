@@ -1,5 +1,5 @@
-// src/Components/CreateTaskWizard/WizardContainer.jsx
-import React from 'react';
+// src/Components/Projects/CreateSubTaskWizard/SubTaskWizardContainer.jsx
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,59 +9,63 @@ import {
   Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../../Themes/ThemeContext';
-import { FileText, Users, Paperclip, ChevronLeft, X, Check } from 'lucide-react-native';
-import StepTaskDetails from './StepTaskDetails';
-import StepAssignment from './StepAssignment';
-import StepExtras from './StepExtras';
+import { FileText, Paperclip, ChevronLeft, X, Check } from 'lucide-react-native';
+import StepBasicInfo from './StepBasicInfo';
+import StepResourcesFiles from './StepResourcesFiles';
 
 const STEPS = [
-  { key: 'details', label: 'Task Details', icon: FileText },
-  { key: 'assignment', label: 'Assignment', icon: Users },
-  { key: 'extras', label: 'Extras', icon: Paperclip },
+  { key: 'details', label: 'Subtask Details', icon: FileText },
+  { key: 'resources', label: 'Resources', icon: Paperclip },
 ];
 
-const safeDate = (v) => {
-  if (!v) return null;
-  try { const d = new Date(v); return isNaN(d.getTime()) ? null : d; } catch { return null; }
-};
-
-export default function WizardContainer({
+export default function SubTaskWizardContainer({
   organizationId = 'one',
   onSubmit,
   initialTask = null,
   mode = 'create',
+  navigation,
+  parentTask,
 }) {
   const { theme } = useTheme();
-  const navigation = useNavigation();
-  const [step, setStep] = React.useState(0);
+  const [step, setStep] = useState(0);
 
-  const [formData, setFormData] = React.useState({
-    project: initialTask?.project || null,
+  const safeCreateDate = (dateValue) => {
+    if (!dateValue) return null;
+    try {
+      const date = new Date(dateValue);
+      return isNaN(date.getTime()) ? null : date;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const [formData, setFormData] = useState({
     title: initialTask?.title || '',
     description: initialTask?.description || '',
+    status: initialTask?.status || 'not_started',
     priority: initialTask?.priority || 'urgent_important',
-    dueDate: safeDate(initialTask?.due_date),
+    dueDate: safeCreateDate(initialTask?.due_date),
     allDay: initialTask?.all_day === '1' || initialTask?.all_day === true || false,
-    startTime: safeDate(initialTask?.start_time),
-    endTime: safeDate(initialTask?.end_time),
+    startTime: safeCreateDate(initialTask?.start_time),
+    endTime: safeCreateDate(initialTask?.end_time),
     assignees: Array.isArray(initialTask?.assigned_to) ? initialTask.assigned_to : [],
-    tags: Array.isArray(initialTask?.tags) ? initialTask.tags : [],
-    remarks: initialTask?.remarks || '',
+    links: Array.isArray(initialTask?.links) ? initialTask.links : [],
     attachments: Array.isArray(initialTask?.attachments) ? initialTask.attachments : [],
-    status: initialTask?.status || '',
     taskId: initialTask?.task_id || initialTask?.id || null,
   });
 
-  const update = (updates) => setFormData(prev => ({ ...prev, ...updates }));
-  const goNext = () => setStep(s => Math.min(s + 1, STEPS.length - 1));
-  const goBack = () => setStep(s => Math.max(s - 1, 0));
+  const updateFormData = (updates) => {
+    setFormData((prev) => ({ ...prev, ...updates }));
+  };
+
+  const goNext = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  const goBack = () => setStep((s) => Math.max(s - 1, 0));
 
   // Progress bar animation
-  const progressAnim = React.useRef(new Animated.Value((step + 1) / STEPS.length)).current;
+  const progressAnim = useRef(new Animated.Value((step + 1) / STEPS.length)).current;
 
-  React.useEffect(() => {
+  useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: (step + 1) / STEPS.length,
       duration: 400,
@@ -75,10 +79,11 @@ export default function WizardContainer({
       <SafeAreaView edges={['top']} style={{ backgroundColor: theme.colors.background }}>
         {/* ─── Colored App Bar ─── */}
         <View style={{
-          paddingHorizontal: 22,
+          paddingHorizontal: 20,
           paddingTop: 8,
           paddingBottom: 15,
           backgroundColor: theme.colors.primary,
+
           borderBottomLeftRadius: 35,
           borderBottomRightRadius: 35,
           marginTop: 0, // Margin to show top radius
@@ -87,7 +92,7 @@ export default function WizardContainer({
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
             <View>
               <Text style={{ fontSize: 20, fontWeight: '900', color: '#FFF', letterSpacing: -0.5 }}>
-                {mode === 'edit' ? 'Update Task' : 'Create New Task'}
+                {mode === 'edit' ? 'Update Subtask' : 'New Subtask'}
               </Text>
               <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: '600', marginTop: 0 }}>
                 Step {step + 1} of {STEPS.length}
@@ -127,7 +132,7 @@ export default function WizardContainer({
         backgroundColor: theme.colors.background,
         borderBottomWidth: 1,
         borderBottomColor: theme.colors.border,
-        gap: 8,
+        gap: 10,
         shadowColor: '#000',
         shadowOpacity: 0.05,
         shadowRadius: 4,
@@ -163,29 +168,23 @@ export default function WizardContainer({
       {/* ─── Step Content ─── */}
       <View style={{ flex: 1 }}>
         {step === 0 && (
-          <StepTaskDetails
+          <StepBasicInfo
+            organizationId={organizationId}
             onNext={goNext}
             formData={formData}
-            updateFormData={update}
+            updateFormData={updateFormData}
+            navigation={navigation}
           />
         )}
         {step === 1 && (
-          <StepAssignment
-            projectId={formData.project?.id}
-            selectedAssignees={formData.assignees}
-            onChangeAssignees={(assignees) => update({ assignees })}
+          <StepResourcesFiles
             onNext={goNext}
             onBack={goBack}
-          />
-        )}
-        {step === 2 && (
-          <StepExtras
-            value={{ tags: formData.tags, remarks: formData.remarks, attachments: formData.attachments }}
-            onChange={(updates) => update(updates)}
-            onBack={goBack}
             onCreate={() => onSubmit?.(formData)}
+            formData={formData}
+            updateFormData={updateFormData}
             mode={mode}
-            title={mode === 'edit' ? 'Update Task' : 'Create Task'}
+            title={mode === 'edit' ? 'Update Subtask' : 'Create Subtask'}
           />
         )}
       </View>

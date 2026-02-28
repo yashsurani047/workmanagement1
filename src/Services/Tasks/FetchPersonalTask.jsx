@@ -26,26 +26,48 @@ const getAuthContext = async () => {
 // -----------------------------
 export const updatePersonalTask = async (organizationId, taskId, updatedData) => {
   try {
-    const { token } = await getAuthContext();
+    const { token, user_id } = await getAuthContext();
+    const formData = new FormData();
+
+    formData.append("organization_id", organizationId);
+    formData.append("title", updatedData.title || "");
+    formData.append("description", updatedData.description || "");
+    formData.append("priority", updatedData.priority || "not_urgent_not_important");
+    formData.append("status", updatedData.status || "pending");
+    formData.append("all_day", updatedData.all_day ? "1" : "0");
+    formData.append("start_date", updatedData.start_date || "");
+    formData.append("end_date", updatedData.end_date || "");
+    formData.append("start_time", updatedData.all_day ? "" : (updatedData.start_time || ""));
+    formData.append("end_time", updatedData.all_day ? "" : (updatedData.end_time || ""));
+    formData.append("recurrence", updatedData.recurrence || "none");
+    formData.append("recurrence_days", updatedData.recurrence_days || "");
+    formData.append("recurrence_end_date", updatedData.recurrence_end_date || "");
+    formData.append("updated_by", user_id || "");
+
+    if (updatedData.links && Array.isArray(updatedData.links)) {
+      formData.append("links", JSON.stringify(updatedData.links));
+    }
+
+    if (updatedData.attachments && Array.isArray(updatedData.attachments)) {
+      updatedData.attachments.forEach((file) => {
+        formData.append("attachments", file);
+      });
+    }
+
     const url = `${API_BASE_URL}personal-tasks/organizations/${organizationId}/${taskId}/update/`;
     const response = await fetch(url, {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify(updatedData),
+      body: formData,
     });
 
     const raw = await response.text();
-    const contentType = response.headers.get('content-type') || '';
     let result = null;
     try {
-      if (contentType.includes('application/json') && raw && raw.trim().length > 0) {
-        result = JSON.parse(raw);
-      }
+      if (raw && raw.trim().length > 0) result = JSON.parse(raw);
     } catch (_) {
-      // leave result null
     }
 
     if (!response.ok) {
@@ -53,7 +75,6 @@ export const updatePersonalTask = async (organizationId, taskId, updatedData) =>
       return { success: false, error: msg };
     }
 
-    // Some APIs return empty body on success
     const task = result?.task || result?.data || result || null;
     return { success: true, task, message: 'Task updated successfully' };
   } catch (error) {
@@ -128,34 +149,42 @@ export const fetchPersonalTasks = async () => {
 export const createTask = async (organizationId, payload) => {
   try {
     const { token } = await getAuthContext();
+    const formData = new FormData();
 
-    const body = {
-      organization_id: organizationId,
-      title: payload.title,
-      description: payload.description || "",
-      priority: payload.priority || "not_urgent_not_important",
-      start_date: payload.start_date || "",
-      end_date: payload.end_date || "",
-      all_day: payload.all_day ? 1 : 0,
-      start_time: payload.all_day ? "" : (payload.start_time || ""),
-      end_time: payload.all_day ? "" : (payload.end_time || ""),
-      recurrence: payload.recurrence || "none",
-      recurrence_end_date: payload.recurrence_end_date || "",
-      recurrence_interval: payload.recurrence_interval ?? 1,
-      recurrence_days: payload.recurrence_days || "",
-      created_by: payload.created_by,
-      creator_user_id: payload.creator_user_id || "",
-      status: payload.status || "pending",
-    };
+    formData.append("organization_id", organizationId);
+    formData.append("title", payload.title);
+    formData.append("description", payload.description || "");
+    formData.append("priority", payload.priority || "not_urgent_not_important");
+    formData.append("start_date", payload.start_date || "");
+    formData.append("end_date", payload.end_date || "");
+    formData.append("all_day", payload.all_day ? "1" : "0");
+    formData.append("start_time", payload.all_day ? "" : (payload.start_time || ""));
+    formData.append("end_time", payload.all_day ? "" : (payload.end_time || ""));
+    formData.append("recurrence", payload.recurrence || "none");
+    formData.append("recurrence_end_date", payload.recurrence_end_date || "");
+    formData.append("recurrence_interval", String(payload.recurrence_interval ?? 1));
+    formData.append("recurrence_days", payload.recurrence_days || "");
+    formData.append("created_by", payload.created_by || "");
+    formData.append("creator_user_id", payload.creator_user_id || "");
+    formData.append("status", payload.status || "pending");
+
+    if (payload.links && Array.isArray(payload.links)) {
+      formData.append("links", JSON.stringify(payload.links));
+    }
+
+    if (payload.attachments && Array.isArray(payload.attachments)) {
+      payload.attachments.forEach((file) => {
+        formData.append("attachments", file);
+      });
+    }
 
     const url = `${API_BASE_URL}personal-tasks/organizations/${organizationId}/create/`;
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify(body),
+      body: formData,
     });
 
     const raw = await response.text();
@@ -168,22 +197,12 @@ export const createTask = async (organizationId, payload) => {
 
     if (!response.ok) {
       console.error("createTask error", { status: response.status, raw });
-      const message =
-        responseData?.message ||
-        responseData?.error ||
-        raw ||
-        "Failed to create task";
+      const message = responseData?.message || responseData?.error || raw || "Failed to create task";
       return { success: false, error: message };
     }
 
-    const created =
-      responseData?.task ||
-      (Array.isArray(responseData?.tasks) ? responseData.tasks[0] : null) ||
-      responseData?.data || null;
-
-    return created
-      ? { success: true, task: created }
-      : { success: true, task: null };
+    const created = responseData?.task || (Array.isArray(responseData?.tasks) ? responseData.tasks[0] : null) || responseData?.data || null;
+    return { success: true, task: created };
   } catch (error) {
     console.error("Error creating task:", error);
     return { success: false, error: error.message };

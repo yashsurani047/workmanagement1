@@ -12,12 +12,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import { getUserProfile } from "../Services/Common/authServices";
 import { BASE_URL } from "../Config/api";
-import theme from "../Themes/Themes"; // your theme import
+import { useTheme } from "../Themes/ThemeContext";
 
 // Custom Toast Component
 import CustomToast from "../Components/Common/CustomToast";
 
 const ProfileScreen = ({ navigation }) => {
+  const { theme } = useTheme();
   const [profile, setProfile] = useState(null);
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [email, setEmail] = useState(null);
@@ -107,7 +108,7 @@ const ProfileScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text style={{ color: theme.colors.primary, marginTop: theme.spacing.sm }}>
           Loading profile...
@@ -118,10 +119,10 @@ const ProfileScreen = ({ navigation }) => {
 
   if (error) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Logout & Return to Login</Text>
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
+        <TouchableOpacity style={[styles.logoutButton, { backgroundColor: theme.colors.error }]} onPress={handleLogout}>
+          <Text style={[styles.logoutButtonText, { color: theme.colors.white }]}>Logout & Return to Login</Text>
         </TouchableOpacity>
         <Toast config={CustomToast} />
       </View>
@@ -130,56 +131,56 @@ const ProfileScreen = ({ navigation }) => {
 
   return (
     <ScrollView
-      style={styles.background}
+      style={[styles.background, { backgroundColor: theme.colors.background }]}
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     >
       {/* Top header with solid color */}
-      <View style={styles.headerBackground}>
+      <View style={[styles.headerBackground, { backgroundColor: theme.colors.primary, borderBottomLeftRadius: theme.radius.lg, borderBottomRightRadius: theme.radius.lg }]}>
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Go back"
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backIcon}>{"\u2190"}</Text>
+          <Text style={[styles.backIcon, { color: theme.colors.white }]}>{"\u2190"}</Text>
         </TouchableOpacity>
-        <View style={styles.avatarWrapper}>
+        <View style={[styles.avatarWrapper, { backgroundColor: theme.colors.muted100 }]}>
           {profilePhoto ? (
             <Image source={{ uri: profilePhoto }} style={styles.avatar} />
           ) : (
-            <View style={styles.placeholderPhoto}>
-              <Text style={styles.placeholderText}>No Photo</Text>
+            <View style={[styles.placeholderPhoto, { backgroundColor: theme.colors.muted200 }]}>
+              <Text style={{ color: theme.colors.textSecondary }}>No Photo</Text>
             </View>
           )}
         </View>
-        <Text style={styles.name}>{profile?.full_name || "No Name"}</Text>
-        <Text style={styles.email}>{email || "No Email"}</Text>
+        <Text style={[styles.name, { color: theme.colors.white }]}>{profile?.full_name || "No Name"}</Text>
+        <Text style={[styles.email, { color: theme.colors.white }]}>{email || "No Email"}</Text>
       </View>
 
       {/* Info Card */}
-      <View style={styles.infoCard}>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Name:</Text>
-          <Text style={styles.infoValue}>{profile?.full_name || "N/A"}</Text>
+      <View style={[styles.infoCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderWidth: 1 }]}>
+        <View style={[styles.infoRow, { borderBottomColor: theme.colors.border }]}>
+          <Text style={[styles.infoLabel, { color: theme.colors.primary }]}>Name:</Text>
+          <Text style={[styles.infoValue, { color: theme.colors.text }]}>{profile?.full_name || "N/A"}</Text>
         </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Email:</Text>
-          <Text style={styles.infoValue}>{email || "N/A"}</Text>
+        <View style={[styles.infoRow, { borderBottomColor: theme.colors.border }]}>
+          <Text style={[styles.infoLabel, { color: theme.colors.primary }]}>Email:</Text>
+          <Text style={[styles.infoValue, { color: theme.colors.text }]}>{email || "N/A"}</Text>
         </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Mobile:</Text>
-          <Text style={styles.infoValue}>{mobile || "N/A"}</Text>
+        <View style={[styles.infoRow, { borderBottomColor: theme.colors.border }]}>
+          <Text style={[styles.infoLabel, { color: theme.colors.primary }]}>Mobile:</Text>
+          <Text style={[styles.infoValue, { color: theme.colors.text }]}>{mobile || "N/A"}</Text>
         </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Address:</Text>
-          <Text style={styles.infoValue}>{address || "N/A"}</Text>
+        <View style={[styles.infoRow, { borderBottomColor: theme.colors.border }]}>
+          <Text style={[styles.infoLabel, { color: theme.colors.primary }]}>Address:</Text>
+          <Text style={[styles.infoValue, { color: theme.colors.text }]}>{address || "N/A"}</Text>
         </View>
       </View>
 
       {/* Logout Button */}
-      <TouchableOpacity style={styles.logoutButtonFull} onPress={handleLogout}>
-        <Text style={styles.logoutButtonText}>Logout</Text>
+      <TouchableOpacity style={[styles.logoutButtonFull, { backgroundColor: theme.colors.error }]} onPress={handleLogout}>
+        <Text style={[styles.logoutButtonText, { color: theme.colors.white }]}>Logout</Text>
       </TouchableOpacity>
 
       <Toast config={CustomToast} />
@@ -190,42 +191,36 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    backgroundColor: theme.colors.white,
   },
   container: {
-    paddingBottom: theme.spacing.lg * 2,
+    paddingBottom: 40,
     alignItems: "center",
   },
   headerBackground: {
     width: "100%",
-    backgroundColor: theme.colors.primary, // solid color
-    paddingVertical: theme.spacing.lg * 2,
-    paddingTop: theme.spacing.lg * 2 + theme.spacing.md,
+    paddingVertical: 48,
+    paddingTop: 64,
     alignItems: "center",
-    borderBottomLeftRadius: theme.radius.lg,
-    borderBottomRightRadius: theme.radius.lg,
   },
   backButton: {
     position: "absolute",
-    top: theme.spacing.lg,
-    marginTop: theme.spacing.md,
-    left: theme.spacing.lg,
-    padding: theme.spacing.xs,
-    borderRadius: theme.radius.md,
+    top: 24,
+    marginTop: 16,
+    left: 24,
+    padding: 4,
+    borderRadius: 12,
   },
   backIcon: {
     fontSize: 22,
-    color: theme.colors.white,
     fontWeight: "700",
   },
   avatarWrapper: {
-    backgroundColor: theme.colors.muted100,
     width: 120,
     height: 120,
     borderRadius: 60,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   avatar: {
     width: 115,
@@ -236,57 +231,49 @@ const styles = StyleSheet.create({
     width: 110,
     height: 110,
     borderRadius: 55,
-    backgroundColor: theme.colors.muted200,
     justifyContent: "center",
     alignItems: "center",
-  },
-  placeholderText: {
-    color: theme.colors.textMuted,
   },
   name: {
     fontSize: 22,
     fontWeight: "700",
-    color: theme.colors.white,
   },
   email: {
     fontSize: 14,
-    color: theme.colors.white,
-    marginTop: theme.spacing.xs,
+    marginTop: 4,
   },
   infoCard: {
     width: "90%",
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.radius.lg,
-    paddingVertical: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.lg + theme.spacing.sm,
+    borderRadius: 16,
+    paddingVertical: 24,
+    paddingHorizontal: 28,
     elevation: 5,
-    marginTop: -theme.spacing.lg,
+    marginTop: -24,
   },
   infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: 12,
     borderBottomWidth: 0.7,
-    borderBottomColor: theme.colors.borderSubtle,
   },
   infoLabel: {
     fontWeight: "600",
-    color: theme.colors.project,
   },
-  infoValue: {
-    color: theme.colors.textSecondary,
-  },
+  infoValue: {},
   logoutButtonFull: {
-    backgroundColor: theme.colors.error,
     width: "70%",
-    paddingVertical: theme.spacing.xs + theme.spacing.sm,
-    borderRadius: theme.radius.lg,
+    paddingVertical: 14,
+    borderRadius: 16,
     alignItems: "center",
     elevation: 3,
-    marginTop: theme.spacing.lg,
+    marginTop: 24,
+  },
+  logoutButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
   },
   logoutButtonText: {
-    color: theme.colors.white,
     fontWeight: "700",
     fontSize: 16,
   },
@@ -294,13 +281,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.white,
+    padding: 16,
   },
   errorText: {
-    color: theme.colors.error,
     fontSize: 16,
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
     textAlign: "center",
   },
 });

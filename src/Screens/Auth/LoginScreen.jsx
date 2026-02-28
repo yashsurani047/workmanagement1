@@ -5,87 +5,18 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
 } from "react-native";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { showCustomToast } from "../../Components/Common/CustomToast";
 import theme from "../../Themes/Themes";
-import { loginUser } from "../../Services/Common/authServices";
 import WorkManaLogo from "../../Assets/WorkManaLogo";
 
 const LoginScreen = ({ navigation }) => {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    if (!identifier || !password) {
-      showCustomToast('error', 'Please enter both username and password');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const result = await loginUser(identifier, password);
-      setLoading(false);
-
-      if (result.success) {
-        const userData = result.data;
-
-        // 1. SAVE TOKEN
-        if (userData?.token) {
-          await AsyncStorage.setItem("userToken", userData.token);
-          console.log(
-            "Token saved in AsyncStorage:",
-            userData.token.substring(0, 10) + "..."
-          );
-        } else {
-          console.warn("No token in login response! Response:", userData);
-        }
-
-        // 2. SAVE USER ID
-        const userId = userData?.user_id;
-        if (userId) {
-          await AsyncStorage.setItem("userId", String(userId));
-          console.log("User ID stored:", userId);
-        } else {
-          console.warn("No user_id in login response");
-        }
-
-        // 3. SAVE FULL USER INFO
-        const userInfo = {
-          username: userData.username,
-          full_name: userData.full_name,
-          user_id: userData.user_id,
-          organization_id: userData.organization_id,
-          token: userData.token,
-        };
-        await AsyncStorage.setItem("userInfo", JSON.stringify(userInfo));
-        console.log("✅ userInfo saved:", userInfo);
-
-        // 3b. STORE organization_id separately for modules that read this key directly
-        if (userData?.organization_id) {
-          await AsyncStorage.setItem("organization_id", String(userData.organization_id));
-        }
-
-        // 4. SUCCESS TOAST
-        showCustomToast('success', 'Login successful!');
-
-        // 5. NAVIGATE TO MAIN (Home Tab)
-       setTimeout(() => {
-  navigation.replace("Main", { screen: "Home", params: { userId: userData.user_id } });
-}, 1500);
-      } else {
-        console.log("Login failed:", result.error);
-        showCustomToast('error', result.error || 'Invalid credentials');
-      }
-    } catch (error) {
-      setLoading(false);
-      console.error("Login error:", error);
-      showCustomToast('error', 'Something went wrong. Please try again.');
-    }
+  const handleLogin = () => {
+    navigation.replace("Main", { screen: "Home" });
   };
 
   return (
@@ -129,15 +60,10 @@ const LoginScreen = ({ navigation }) => {
 
       {/* Login Button */}
       <TouchableOpacity
-        style={[styles.button, loading && { opacity: 0.7 }]}
+        style={styles.button}
         onPress={handleLogin}
-        disabled={loading}
       >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Login</Text>
-        )}
+        <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
 
     </View>

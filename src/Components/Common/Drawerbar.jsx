@@ -14,31 +14,33 @@ import {
   Platform,
   StatusBar,
   Easing,
+  ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUserProfile } from '../../Services/Common/authServices';
-import theme from '../../Themes/Themes';
 import { BASE_URL } from '../../Config/api.jsx';
+import { useTheme, ACCENT_COLORS } from '../../Themes/ThemeContext';
 
-// ⭐ Lucide Icons
-import { User, Settings, HelpCircle, ChevronRight } from 'lucide-react-native';
+// Lucide Icons
+import { User, Settings, HelpCircle, ChevronRight, Sun, Moon, Palette, Check } from 'lucide-react-native';
 
-// ⭐ Navigation Hook (NEW)
+// Navigation Hook
 import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
 const Drawerbar = ({ visible, onClose, onLogout }) => {
+  const { theme, mode, accent, setAccent, toggleMode, isDark } = useTheme();
   const [profile, setProfile] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [avatar, setAvatar] = React.useState(null);
+  const [themeOpen, setThemeOpen] = React.useState(false);
 
   const [render, setRender] = React.useState(visible);
 
   const slideX = React.useRef(new Animated.Value(-width)).current;
   const overlayOpacity = React.useRef(new Animated.Value(0)).current;
 
-  // ⭐ Initialize navigation
   const navigation = useNavigation();
 
   const buildAvatarUri = (val) => {
@@ -67,17 +69,8 @@ const Drawerbar = ({ visible, onClose, onLogout }) => {
           setProfile(data);
 
           const fields = [
-            'profile_photo',
-            'avatar',
-            'photo_url',
-            'profile_pic',
-            'photo',
-            'profile_image',
-            'avatar_url',
-            'image_url',
-            'image',
-            'picture',
-            'profilePic',
+            'profile_photo', 'avatar', 'photo_url', 'profile_pic', 'photo',
+            'profile_image', 'avatar_url', 'image_url', 'image', 'picture', 'profilePic',
           ];
 
           for (const f of fields) {
@@ -127,7 +120,10 @@ const Drawerbar = ({ visible, onClose, onLogout }) => {
           useNativeDriver: true,
         }),
       ]).start(({ finished }) => {
-        if (finished) setRender(false);
+        if (finished) {
+          setRender(false);
+          setThemeOpen(false);
+        }
       });
     }
   }, [visible]);
@@ -142,14 +138,16 @@ const Drawerbar = ({ visible, onClose, onLogout }) => {
       .slice(0, 2);
   }, [profile]);
 
-  // ⭐ Menu items with icons
   const menuItems = [
     { key: 'profile', label: 'My Profile', icon: User },
+    { key: 'theme', label: 'Theme & Colors', icon: Palette },
     { key: 'settings', label: 'Settings', icon: Settings },
     { key: 'help', label: 'Help & Support', icon: HelpCircle },
   ];
 
   if (!render) return null;
+
+  const STATUSBAR_PADDING = Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 44;
 
   return (
     <Modal
@@ -160,94 +158,150 @@ const Drawerbar = ({ visible, onClose, onLogout }) => {
       onRequestClose={onClose}
     >
       <TouchableWithoutFeedback onPress={onClose}>
-        <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+        <Animated.View style={[styles(theme).overlay, { opacity: overlayOpacity }]}>
           <TouchableWithoutFeedback>
             <Animated.View
-              style={[styles.drawer, { transform: [{ translateX: slideX }] }]}
+              style={[styles(theme).drawer, { transform: [{ translateX: slideX }] }]}
             >
               {/* Header */}
-              <View style={styles.headerTop}>
-                <View style={styles.headerContent}>
-                  <View style={styles.avatarWrap}>
+              <View style={[styles(theme).headerTop, { paddingTop: STATUSBAR_PADDING + 24 }]}>
+                <View style={styles(theme).headerContent}>
+                  <View style={styles(theme).avatarWrap}>
                     {avatar ? (
                       <Image
                         source={{ uri: avatar }}
-                        style={styles.avatar}
+                        style={styles(theme).avatar}
                         resizeMode="cover"
                       />
                     ) : (
-                      <View style={[styles.avatar, styles.avatarFallback]}>
+                      <View style={[styles(theme).avatar, styles(theme).avatarFallback]}>
                         {loading ? (
                           <ActivityIndicator color={theme.colors.white} />
                         ) : (
-                          <Text style={styles.avatarInitials}>{initials}</Text>
+                          <Text style={styles(theme).avatarInitials}>{initials}</Text>
                         )}
                       </View>
                     )}
                   </View>
 
                   <View style={{ marginLeft: 12, flex: 1 }}>
-                    <Text style={styles.name} numberOfLines={1}>
+                    <Text style={styles(theme).name} numberOfLines={1}>
                       {profile?.full_name || profile?.username || 'User'}
                     </Text>
-                    <Text style={styles.sub} numberOfLines={1}>
+                    <Text style={styles(theme).sub} numberOfLines={1}>
                       {profile?.email || profile?.user_primary_email_id || ''}
                     </Text>
                   </View>
                 </View>
               </View>
 
-              <View style={styles.divider} />
+              <View style={styles(theme).divider} />
 
-              {/* ⭐ Menu items */}
-              <View style={styles.menuContainer}>
-                {menuItems.map((item, index) => {
-                  const Icon = item.icon;
+              <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+                {/* Menu items */}
+                <View style={styles(theme).menuContainer}>
+                  {menuItems.map((item, index) => {
+                    const Icon = item.icon;
+                    return (
+                      <TouchableOpacity
+                        key={item.key}
+                        activeOpacity={0.7}
+                        style={[
+                          styles(theme).menuItem,
+                          index === 0 && styles(theme).menuItemFirst,
+                        ]}
+                        onPress={() => {
+                          if (item.key === 'profile') {
+                            onClose && onClose();
+                            navigation.navigate('Profile');
+                          } else if (item.key === 'theme') {
+                            setThemeOpen(!themeOpen);
+                          }
+                        }}
+                      >
+                        <View style={styles(theme).menuLeft}>
+                          <Icon size={20} color={item.key === 'theme' ? theme.colors.primary : theme.colors.text} style={{ width: 26 }} />
+                          <Text style={[styles(theme).menuLabel, item.key === 'theme' && { color: theme.colors.primary, fontWeight: '600' }]}>{item.label}</Text>
+                        </View>
+                        <ChevronRight size={20} color={theme.colors.textSecondary} />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
 
-                  return (
-                    <TouchableOpacity
-                      key={item.key}
-                      activeOpacity={0.7}
-                      style={[
-                        styles.menuItem,
-                        index === 0 && styles.menuItemFirst,
-                      ]}
-                      onPress={() => {
-                        onClose && onClose();
-                        if (item.key === 'profile') {
-                          navigation.navigate('Profile'); // ⭐ PROFILE REDIRECT
-                        }
-                      }}
-                    >
-                      <View style={styles.menuLeft}>
-                        <Icon size={20} color={theme.colors.text} style={{ width: 26 }} />
-                        <Text style={styles.menuLabel}>{item.label}</Text>
+                {/* ─── Theme Settings Panel ─── */}
+                {themeOpen && (
+                  <View style={styles(theme).themePanel}>
+                    {/* Light / Dark Toggle */}
+                    <View style={styles(theme).themeModeRow}>
+                      <Text style={styles(theme).themeSectionLabel}>Mode</Text>
+                      <View style={styles(theme).modeToggleRow}>
+                        <TouchableOpacity
+                          style={[
+                            styles(theme).modeBtn,
+                            !isDark && { backgroundColor: theme.colors.primary },
+                          ]}
+                          onPress={() => toggleMode()}
+                          activeOpacity={0.8}
+                        >
+                          <Sun size={16} color={!isDark ? '#fff' : theme.colors.textSecondary} />
+                          <Text style={[styles(theme).modeBtnText, !isDark && { color: '#fff' }]}>Light</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles(theme).modeBtn,
+                            isDark && { backgroundColor: theme.colors.primary },
+                          ]}
+                          onPress={() => toggleMode()}
+                          activeOpacity={0.8}
+                        >
+                          <Moon size={16} color={isDark ? '#fff' : theme.colors.textSecondary} />
+                          <Text style={[styles(theme).modeBtnText, isDark && { color: '#fff' }]}>Dark</Text>
+                        </TouchableOpacity>
                       </View>
+                    </View>
 
-                      <ChevronRight size={20} color={theme.colors.textSecondary} />
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <View style={{ flex: 1 }} />
+                    {/* Accent Color Grid */}
+                    <Text style={styles(theme).themeSectionLabel}>Accent Color</Text>
+                    <View style={styles(theme).colorGrid}>
+                      {ACCENT_COLORS.map((c) => {
+                        const isSelected = accent === c.hex;
+                        return (
+                          <TouchableOpacity
+                            key={c.hex}
+                            style={[
+                              styles(theme).colorSwatch,
+                              { backgroundColor: c.hex },
+                              isSelected && styles(theme).colorSwatchSelected,
+                            ]}
+                            onPress={() => setAccent(c.hex)}
+                            activeOpacity={0.8}
+                          >
+                            {isSelected && <Check size={16} color="#FFFFFF" strokeWidth={3} />}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+              </ScrollView>
 
               {/* Footer */}
-              <View style={styles.bottomRow}>
+              <View style={styles(theme).bottomRow}>
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  style={styles.secondaryBtn}
+                  style={styles(theme).secondaryBtn}
                   onPress={onClose}
                 >
-                  <Text style={styles.secondaryBtnText}>Close</Text>
+                  <Text style={styles(theme).secondaryBtnText}>Close</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   activeOpacity={0.85}
-                  style={styles.destructiveBtn}
-                  onPress={onLogout || (() => {})}
+                  style={styles(theme).destructiveBtn}
+                  onPress={onLogout || (() => { })}
                 >
-                  <Text style={styles.destructiveBtnText}>Logout</Text>
+                  <Text style={styles(theme).destructiveBtnText}>Logout</Text>
                 </TouchableOpacity>
               </View>
             </Animated.View>
@@ -258,11 +312,7 @@ const Drawerbar = ({ visible, onClose, onLogout }) => {
   );
 };
 
-const STATUSBAR_PADDING =
-  Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 44;
-
-// ⭐ Styles (unchanged)
-const styles = StyleSheet.create({
+const styles = (theme) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: theme.colors.overlayLight || 'rgba(0,0,0,0.5)',
@@ -285,9 +335,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 24,
     overflow: 'hidden',
   },
-
   headerTop: {
-    paddingTop: STATUSBAR_PADDING + 24,
     paddingBottom: 14,
     paddingHorizontal: 16,
     backgroundColor: theme.colors.primary,
@@ -296,7 +344,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-
   avatarWrap: {
     width: 56,
     height: 56,
@@ -331,20 +378,11 @@ const styles = StyleSheet.create({
     opacity: 0.85,
     marginTop: 2,
   },
-
-  headerCloseIcon: {
-    marginLeft: 8,
-    padding: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-  },
-
   divider: {
     height: 1,
     backgroundColor: theme.colors.border,
     opacity: 0.5,
   },
-
   menuContainer: {
     paddingHorizontal: 12,
     paddingTop: 8,
@@ -365,7 +403,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-
   menuLabel: {
     fontSize: 14,
     color: theme.colors.text,
@@ -373,6 +410,73 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
 
+  // ─── Theme Settings Panel ───
+  themePanel: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  themeSectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  themeModeRow: {
+    marginBottom: 16,
+  },
+  modeToggleRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: theme.colors.muted100,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  modeBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  colorGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  colorSwatch: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  colorSwatchSelected: {
+    borderColor: theme.colors.text,
+    shadowColor: theme.colors.primary,
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+
+  // Footer
   bottomRow: {
     paddingHorizontal: 16,
     paddingTop: 8,

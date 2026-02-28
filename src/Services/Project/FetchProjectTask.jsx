@@ -10,9 +10,12 @@ export const createTask = async (taskData) => {
     const rawUser = await AsyncStorage.getItem('userInfo');
     const user = rawUser ? JSON.parse(rawUser) : null;
 
-    if (!user?.user_id || !user?.organization_id) {
-      throw new Error('User ID or organization ID missing');
+    if (!user?.user_id) {
+      throw new Error('User ID missing');
     }
+
+    // If organization_id is not available, use a default value or get it from taskData
+    const organizationId = user.organization_id || taskData.organization_id || 'one';
 
     const formData = new FormData();
 
@@ -31,7 +34,7 @@ export const createTask = async (taskData) => {
       remarks: taskData.remarks || '',
       created_by: user.full_name || '',
       creator_user_id: user.user_id || '',
-      organization_id: user.organization_id,
+      organization_id: organizationId,
     };
 
     Object.entries(fields).forEach(([key, value]) => formData.append(key, value));
@@ -49,7 +52,7 @@ export const createTask = async (taskData) => {
       });
     }
 
-    const url = `${API_BASE_URL}organizations/${user.organization_id}/create-task/`;
+    const url = `${API_BASE_URL}organizations/${organizationId}/create-task/`;
     const response = await fetch(url, { method: 'POST', body: formData, headers: { Accept: 'application/json' } });
 
     const text = await response.text();
@@ -264,6 +267,114 @@ export const collaborateTask = async (taskData) => {
 
 // Backwards-compatible named export that returns the same normalized array
 export const fetchProjectTasks = fetchTasksByProject;
+
+// ✅ Delete a task
+export const deleteTask = async (taskId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}tasks/delete/${taskId}/`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const error = await response.json();      
+      throw new Error(error.message || error.error || "Failed to delete task");
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("❌ deleteTask error:", err);
+    return { success: false, error: err.message };
+  }
+};
+
+// Update an existing task
+export const updateTask = async (organizationId, taskId, taskData) => {
+  try {
+    const rawUser = await AsyncStorage.getItem('userInfo');
+    const user = rawUser ? JSON.parse(rawUser) : null;
+
+    if (!user?.user_id) {
+      throw new Error('User ID missing');
+    }
+
+    // If organization_id is not available, use a default value or get it from taskData
+    const orgId = user.organization_id || taskData.organization_id || organizationId || 'one';
+
+    const formData = new FormData();
+
+    const fields = {
+      project_id: taskData.project_id || '',
+      project_name: taskData.project_name || '',
+      title: taskData.title || 'Untitled Task',
+      description: taskData.description || '',
+      priority: taskData.priority || 'medium',
+      assigned_to: JSON.stringify(taskData.assigned_to || []),
+      due_date: taskData.due_date || '',
+      start_time: taskData.start_time || '',
+      end_time: taskData.end_time || '',
+      all_day: taskData.all_day ? '1' : '0',
+      tags: JSON.stringify(taskData.tags || []),
+      remarks: taskData.remarks || '',
+      created_by: user.full_name || '',
+      creator_user_id: user.user_id || '',
+      organization_id: orgId,
+      status: taskData.status && taskData.status.trim() ? taskData.status.trim() : 'not_started',
+      department_id: taskData.department_id || '',
+    };
+
+    Object.entries(fields).forEach(([key, value]) => formData.append(key, value));
+
+    // Debug logging
+    console.log('Update Task Data:', {
+      taskId,
+      status: taskData.status,
+      statusLength: taskData.status ? taskData.status.length : 0,
+      fields
+    });
+
+    // Add update-specific fields
+    formData.append("task_id", taskId);
+    formData.append("updated_by", user.user_id || '');
+
+    // Handle attachments if any
+    if (Array.isArray(taskData.attachments)) {
+      taskData.attachments.forEach((attachment, index) => {
+        if (attachment?.file) {
+          formData.append(`attachments[${index}]`, {
+            uri: attachment.file.uri,
+            type: attachment.file.type || 'image/jpeg',
+            name: attachment.file.name || `attachment-${Date.now()}.jpg`,
+          });
+        }
+      });
+    }
+
+    const url = `${API_BASE_URL}tasks/update/${orgId}/${taskId}/`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      body: formData,
+      headers: { Accept: 'application/json' }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { detail: errorText };
+      }
+      throw new Error(errorData.detail || errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result;
+
+  } catch (error) {
+    return { success: false, error: error.message || "Error updating task" };
+  }
+};
 
 // Default export for convenience
 export default fetchTasksByProject;

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Platform } from 'react-native';
 import dayjs from 'dayjs';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import theme from '../../Themes/Themes';
+import { useTheme } from '../../Themes/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ITEM_WIDTH = 50;
@@ -28,6 +28,7 @@ const getMonthDates = (date) => {
 };
 
 export default function DateSelector({ onDateChange }) {
+  const { theme } = useTheme();
   const todayId = dayjs().format(DATE_FORMAT_ID);
   const [selectedDateId, setSelectedDateId] = useState(todayId);
   const [dates, setDates] = useState([]);
@@ -65,12 +66,11 @@ export default function DateSelector({ onDateChange }) {
 
   const handlePickDate = (event, date) => {
     if (Platform.OS === 'android') {
-      setShowPicker(false); // Android picker closes automatically
+      setShowPicker(false);
     }
     if (!date) return;
 
     const picked = dayjs(date);
-    // Keep the previously selected day index but clamp to the days in the picked month
     const prevDay = dayjs(selectedDateId).date();
     const clampedDay = Math.min(prevDay || picked.date(), picked.daysInMonth());
     const next = picked.date(clampedDay);
@@ -84,34 +84,13 @@ export default function DateSelector({ onDateChange }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={{ backgroundColor: theme.colors.background, paddingVertical: 5 }}>
       <ScrollView
         ref={scrollViewRef}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={{ paddingHorizontal: 1, alignItems: 'center' }}
       >
-        {/* View All Button (clears date filtering) */}
-        <TouchableOpacity
-          style={[styles.dateItem, styles.viewAllButton]}
-          onPress={() => {
-            setSelectedDateId("");
-            if (typeof onDateChange === 'function') onDateChange(null);
-          }}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.viewAllText}>View All</Text>
-        </TouchableOpacity>
-
-        {/* Pick Date Button */}
-        <TouchableOpacity
-          style={[styles.dateItem, styles.pickButton]}
-          onPress={() => setShowPicker(true)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.pickText}>Pick Date</Text>
-        </TouchableOpacity>
-
         {/* Month Dates */}
         {dates.map((item) => {
           const selected = item.id === selectedDateId;
@@ -121,12 +100,34 @@ export default function DateSelector({ onDateChange }) {
               key={item.id}
               onPress={() => handleDatePress(item.id)}
               activeOpacity={0.7}
-              style={[styles.dateItem, selected ? styles.selected : styles.unselected]}
+              style={[
+                {
+                  width: ITEM_WIDTH,
+                  height: ITEM_HEIGHT,
+                  borderRadius: 14,
+                  marginHorizontal: ITEM_MARGIN,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  elevation: 3,
+                  shadowColor: theme.colors.shadow,
+                  shadowOpacity: 0.12,
+                  shadowRadius: 4,
+                },
+                selected
+                  ? { backgroundColor: theme.colors.primary, borderWidth: 0 }
+                  : { backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border },
+              ]}
             >
-              <Text style={[styles.dateNumber, selected && styles.selectedText]}>
+              <Text style={[
+                { fontSize: 15, fontWeight: '700', color: theme.colors.text },
+                selected && { color: theme.colors.white },
+              ]}>
                 {item.dateNumber}
               </Text>
-              <Text style={[styles.dayText, selected && styles.selectedText]}>
+              <Text style={[
+                { marginTop: 2, fontSize: 11, fontWeight: '500', color: theme.colors.textSecondary },
+                selected && { color: theme.colors.white },
+              ]}>
                 {item.dayAbbr}
               </Text>
             </TouchableOpacity>
@@ -146,74 +147,3 @@ export default function DateSelector({ onDateChange }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: theme.colors.background,
-    paddingVertical: 5,
-  },
-  scrollContent: {
-    paddingHorizontal: 1,
-    alignItems: 'center',
-  },
-  dateItem: {
-    width: ITEM_WIDTH,
-    height: ITEM_HEIGHT,
-    borderRadius: 14,
-    marginHorizontal: ITEM_MARGIN,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 3,
-    shadowColor: theme.colors.shadow,
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-  },
-  pickButton: {
-    backgroundColor: theme.colors.primary,
-    borderWidth: 0,
-    width: 90,
-    height: ITEM_HEIGHT,
-    borderRadius: 14,
-  },
-  viewAllButton: {
-    backgroundColor: theme.colors.muted100,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    width: 90,
-    height: ITEM_HEIGHT,
-    borderRadius: 14,
-  },
-  pickText: {
-    color: theme.colors.white,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  viewAllText: {
-    color: theme.colors.text,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  unselected: {
-    backgroundColor: theme.colors.white,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight || theme.colors.border,
-  },
-  selected: {
-    backgroundColor: theme.colors.primary,
-    borderWidth: 0,
-  },
-  dateNumber: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.colors.text,
-  },
-  dayText: {
-    marginTop: 2,
-    fontSize: 11,
-    fontWeight: '500',
-    color: theme.colors.textSecondary,
-  },
-  selectedText: {
-    color: theme.colors.white,
-  },
-});
