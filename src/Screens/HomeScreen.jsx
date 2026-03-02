@@ -6,12 +6,23 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+<<<<<<< HEAD
   RefreshControl,
   Animated,
   Easing,
   Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+=======
+  Modal,
+  Platform,
+} from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import ShimmerPlaceholder from "react-native-shimmer-placeholder";
+import LinearGradient from "react-native-linear-gradient";
+>>>>>>> f012798c2d8a64d738e7f62bf4a0d13e0cf411e2
 import TopNavbar from "../Components/Common/Topnavbar";
 import HomeCards from "../Components/Common/HomeCards";
 import { useTheme } from "../Themes/ThemeContext";
@@ -108,7 +119,26 @@ const pb = StyleSheet.create({
 const HomeScreen = ({ navigation }) => {
   const { theme, isDark } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
+<<<<<<< HEAD
   const [tasks, setTasks] = useState(TODAY_TASKS);
+=======
+  const [userInfo, setUserInfo] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [animX, setAnimX] = useState(new Animated.Value(0));
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
+
+  const baseDate = React.useMemo(() => new Date(), []);
+  const dates = React.useMemo(() => {
+    const start = new Date(baseDate);
+    start.setDate(start.getDate() - 15);
+    return Array.from({ length: 90 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return d;
+    });
+  }, [baseDate]);
+>>>>>>> f012798c2d8a64d738e7f62bf4a0d13e0cf411e2
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(24)).current;
@@ -136,6 +166,7 @@ const HomeScreen = ({ navigation }) => {
     <SafeAreaView style={[s.container]} edges={["bottom"]}>
       <TopNavbar navigation={navigation} />
 
+<<<<<<< HEAD
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={s.scrollContent}
@@ -196,6 +227,78 @@ const HomeScreen = ({ navigation }) => {
                 <View style={s.streakBadge}>
                   <Zap size={14} color="#F97316" />
                   <Text style={s.streakText}>On fire!</Text>
+=======
+      {loading ? (
+        <ShimmerLoading />
+      ) : (
+        <Animated.View
+          style={[{
+            flex: 1,
+            transform: [
+              { translateX: Animated.add(
+                animX,
+                swipeAnim.interpolate({
+                  inputRange: [-200, 0, 200],
+                  outputRange: [-20, 0, 20],
+                  extrapolate: 'clamp',
+                })
+              ) }
+            ],
+            opacity: swipeAnim.interpolate({
+              inputRange: [-200, 0, 200],
+              outputRange: [0.8, 1, 0.8],
+              extrapolate: 'clamp',
+            }),
+          }]}
+          {...panResponder.panHandlers}
+        >
+          {!category && (
+            <View>
+              {/* Date Picker Modal (Native Picker Only) */}
+              <Modal
+                visible={showDatePicker}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowDatePicker(false)}
+              >
+                <View style={{ flex: 1, justifyContent: 'center' }}>
+                  <DateTimePicker
+                    value={tempDate}
+                    mode="date"
+                    display={Platform.OS === 'android' ? 'calendar' : 'inline'}
+                    onChange={(event, date) => {
+                      if (Platform.OS === 'android' && event?.type === 'dismissed') {
+                        setShowDatePicker(false);
+                        return;
+                      }
+                      if (date) {
+                        setTempDate(date);
+                        setSelectedDate(date);
+                        setShowDatePicker(false);
+                      }
+                    }}
+                  />
+                </View>
+              </Modal>
+
+              <View style={styles.dateStrip}>
+                <DateSelector
+                  selectedDateId={formatDateISO(selectedDate)}
+                  onRequestPickDate={() => { setTempDate(selectedDate); setShowDatePicker(true); }}
+                  onDateChange={(id) => {
+                    if (!id) { setSelectedDate(new Date()); return; }
+                    try { setSelectedDate(new Date(id)); } catch { setSelectedDate(new Date()); }
+                  }}
+                />
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>My Focus Today</Text>
+                <View style={styles.cardBox}>
+                  <Text style={styles.cardTitleText}>Review Client CRM Data</Text>
+                  <View style={{ height: 8 }} />
+                  <Text style={styles.cardSubText}>Prepare Q3 Presentation Draft</Text>
+>>>>>>> f012798c2d8a64d738e7f62bf4a0d13e0cf411e2
                 </View>
               </View>
               <View style={s.progressBarRow}>
@@ -345,6 +448,7 @@ const sc = StyleSheet.create({
 
 export default HomeScreen;
 
+<<<<<<< HEAD
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const stylesFactory = (theme, isDark) =>
   StyleSheet.create({
@@ -606,3 +710,186 @@ const stylesFactory = (theme, isDark) =>
       lineHeight: 17,
     },
   });
+=======
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 24,
+  },
+  welcomeText: {
+    fontSize: 22,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginBottom: 8,
+  },
+  shimmerContainer: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: theme.colors.background,
+  },
+  shimmerWelcome: {
+    width: 200,
+    height: 28,
+    borderRadius: 4,
+    marginBottom: 12,
+  },
+  shimmerCardRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  shimmerCard: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+  },
+  shimmerList: {
+    marginTop: 8,
+  },
+  shimmerListItem: {
+    width: "100%",
+    height: 90,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginTop: 8,
+  },
+  pillButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  pillButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  dateStrip: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  datePill: {
+    width: 56,
+    height: 64,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 6,
+  },
+  datePillDay: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  datePillWeek: {
+    fontSize: 11,
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  section: {
+    paddingHorizontal: 16,
+    marginTop: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: 8,
+  },
+  cardBox: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 12,
+  },
+  cardTitleText: {
+    color: theme.colors.text,
+    fontSize: 14.5,
+    fontWeight: '700',
+  },
+  cardSubText: {
+    color: theme.colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  activityCard: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 12,
+  },
+  activityTitle: {
+    color: theme.colors.text,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  activityTime: {
+    marginTop: 4,
+    color: theme.colors.textSecondary,
+    fontSize: 12,
+  },
+  emptyContainer: {
+    marginTop: 20,
+    alignItems: "center",
+  },
+  emptyText: {
+    color: theme.colors.secondaryText,
+    fontSize: 16,
+  },
+  stickyHeader: {
+    backgroundColor: theme.colors.sectionBg,
+    zIndex: 10,
+    elevation: 2,
+  },
+  blankState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  blankStateTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginBottom: 6,
+  },
+  blankStateSub: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  modalCard: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  modalActions: {
+    marginTop: 12,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+});
+>>>>>>> f012798c2d8a64d738e7f62bf4a0d13e0cf411e2

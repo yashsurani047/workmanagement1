@@ -41,6 +41,10 @@ const Drawerbar = ({ visible, onClose, onLogout }) => {
   const slideX = React.useRef(new Animated.Value(-width)).current;
   const overlayOpacity = React.useRef(new Animated.Value(0)).current;
 
+<<<<<<< HEAD
+=======
+  //Initialize navigation
+>>>>>>> f012798c2d8a64d738e7f62bf4a0d13e0cf411e2
   const navigation = useNavigation();
 
   const buildAvatarUri = (val) => {

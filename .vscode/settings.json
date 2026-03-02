@@ -1,3 +1,7 @@
 {
+<<<<<<< HEAD
     "java.compile.nullAnalysis.mode": "automatic"
+=======
+    "java.compile.nullAnalysis.mode": "disabled"
+>>>>>>> f012798c2d8a64d738e7f62bf4a0d13e0cf411e2
 }

@@ -19,8 +19,14 @@ import { Home, Folder, ListTodo, Calendar, CalendarClock } from "lucide-react-na
 import { getUserEvents, getOrganizationEvents } from "../../Services/Event/EventServices";
 import { useTheme } from "../../Themes/ThemeContext";
 
+<<<<<<< HEAD
 function TabButton({ tab, isActive, onPress, theme }) {
   const anim = useRef(new Animated.Value(isActive ? 1 : 0)).current;
+=======
+function TabButton({ tab, isActive, onPress }) {
+  const anim = useRef(new Animated.Value(isActive ? 1 : 0)).current;
+
+>>>>>>> f012798c2d8a64d738e7f62bf4a0d13e0cf411e2
   useEffect(() => {
     Animated.timing(anim, {
       toValue: isActive ? 1 : 0,
@@ -28,12 +34,23 @@ function TabButton({ tab, isActive, onPress, theme }) {
       useNativeDriver: true,
     }).start();
   }, [isActive]);
+<<<<<<< HEAD
   const scale = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
   const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -4] });
   return (
     <TouchableOpacity
       key={tab.id}
       style={s.tabItem}
+=======
+
+  const scale = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -4] });
+
+  return (
+    <TouchableOpacity
+      key={tab.id}
+      style={styles.tabItem}
+>>>>>>> f012798c2d8a64d738e7f62bf4a0d13e0cf411e2
       onPress={onPress}
       activeOpacity={0.8}
     >
@@ -44,8 +61,13 @@ function TabButton({ tab, isActive, onPress, theme }) {
             color={isActive ? theme.colors.primary : theme.colors.tabInactive}
           />
           {tab.count !== undefined && (
+<<<<<<< HEAD
             <View style={[s.countBadge, { backgroundColor: `${theme.colors.primary}20` }]}>
               <Text style={[s.countBadgeText, { color: theme.colors.primary }]}>
+=======
+            <View style={[styles.countBadge, { backgroundColor: `${theme.colors.primary}20` }]}>
+              <Text style={[styles.countBadgeText, { color: theme.colors.primary }]}>
+>>>>>>> f012798c2d8a64d738e7f62bf4a0d13e0cf411e2
                 {tab.loading ? "..." : tab.count}
               </Text>
             </View>
@@ -68,6 +90,10 @@ function TabButton({ tab, isActive, onPress, theme }) {
     </TouchableOpacity>
   );
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> f012798c2d8a64d738e7f62bf4a0d13e0cf411e2
 export default function Bottomnav({ state, navigation }) {
   const { theme } = useTheme();
   const [isSheetVisible, setSheetVisible] = useState(false);
@@ -215,6 +241,7 @@ export default function Bottomnav({ state, navigation }) {
   }, [currentRouteName, currentCategory]);
   return (
     <>
+<<<<<<< HEAD
       <SafeAreaView edges={["bottom"]} style={[s.safeArea, { backgroundColor: theme.colors.background, borderTopColor: theme.colors.border }]}>
         <View style={[s.container, { backgroundColor: theme.colors.background }]}>
           {bottomTabs.map((tab) => (
@@ -226,6 +253,25 @@ export default function Bottomnav({ state, navigation }) {
               theme={theme}
             />
           ))}
+=======
+      <SafeAreaView edges={["bottom"]} style={styles.safeArea}>
+        <View style={styles.container}>
+          {bottomTabs.map((tab) => {
+            const isHomeScreen = currentRouteName === "Home";
+            const isActive = tab.screen !== "Home"
+              ? currentRouteName === tab.screen
+              : (tab.id === "home" ? isHomeScreen && !currentCategory : isHomeScreen && currentCategory === tab.id);
+
+            return (
+              <TabButton
+                key={tab.id}
+                tab={tab}
+                isActive={isActive}
+                onPress={() => handlePress(tab.id)}
+              />
+            );
+          })}
+>>>>>>> f012798c2d8a64d738e7f62bf4a0d13e0cf411e2
         </View>
       </SafeAreaView>
       <Modal transparent visible={isSheetVisible} animationType="slide" onRequestClose={toggleSheet}>
